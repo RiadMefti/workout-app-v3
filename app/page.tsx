@@ -1,11 +1,33 @@
-"use client";
+import Link from "next/link";
+import { getSignUpUrl, withAuth, signOut } from "@workos-inc/authkit-nextjs";
 
-import { Button } from "@/components/ui/button";
+export default async function HomePage() {
+  // Retrieves the user from the session or returns `null` if no user is signed in
+  const { user } = await withAuth();
 
-export default function Home() {
+  // Get the URL to redirect the user to AuthKit to sign up
+  const signUpUrl = await getSignUpUrl();
+
+  if (!user) {
+    return (
+      <div>
+        <a href="/login">Sign in</a>
+        <Link href={signUpUrl}>Sign up</Link>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <Button onClick={() => alert("Button clicked!")}>Click Me</Button>
+      <p>Hello{user.firstName && `, ${user.firstName}`}!</p>
+      <form
+        action={async () => {
+          'use server';
+          await signOut();
+        }}
+      >
+        <button type="submit">Sign out</button>
+      </form>
     </div>
   );
 }
