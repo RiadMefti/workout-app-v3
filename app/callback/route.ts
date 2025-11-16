@@ -1,5 +1,9 @@
 import { handleAuth } from "@workos-inc/authkit-nextjs";
+import { syncUser } from "@/lib/user-sync";
 
-// Redirect the user to `/` after successful sign in
-// The redirect can be customized: `handleAuth({ returnPathname: '/foo' })`
-export const GET = handleAuth();
+export const GET = handleAuth({
+  async onSuccess({ user }) {
+    // Sync user to database on successful authentication
+    await syncUser(user);
+  },
+});
