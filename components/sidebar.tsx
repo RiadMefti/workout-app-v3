@@ -1,13 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, ChevronLeft, Home, Dumbbell, Settings, User } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Menu,
+  ChevronLeft,
+  Home,
+  Dumbbell,
+  Settings,
+  User,
+} from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Update CSS variable when collapsed state changes
+    document.documentElement.style.setProperty(
+      '--sidebar-width',
+      collapsed ? '64px' : '256px'
+    );
+  }, [collapsed]);
 
   const menuItems = [
     { icon: Home, label: "Home", href: "/" },
@@ -21,7 +41,11 @@ export function Sidebar() {
       {/* Mobile Sidebar */}
       <Sheet>
         <SheetTrigger asChild className="lg:hidden">
-          <Button variant="ghost" size="icon" className="fixed top-4 left-4 z-50">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 left-4 z-50"
+          >
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
@@ -63,7 +87,11 @@ export function Sidebar() {
             onClick={() => setCollapsed(!collapsed)}
             className={collapsed ? "mx-auto" : ""}
           >
-            {collapsed ? <Menu className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+            {collapsed ? (
+              <Menu className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
           </Button>
         </div>
         <nav className="flex flex-col gap-2 p-4">
