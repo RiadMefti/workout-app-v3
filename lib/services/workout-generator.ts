@@ -11,12 +11,13 @@ export interface WorkoutDay {
   name: string;
   focus: string[];
   exercises: Exercise[];
+  isRestDay?: boolean;
 }
 
 export interface WorkoutPlan {
   split: WorkoutSplit;
   daysPerWeek: number;
-  workoutDays: WorkoutDay[];
+  workoutDays: WorkoutDay[]; // Always 7 days (includes rest days)
 }
 
 /**
@@ -79,11 +80,37 @@ export class WorkoutGenerator {
         break;
     }
 
+    // Fill remaining days with rest days to create a 7-day week
+    const fullWeek = this.createWeeklySchedule(workoutDays, daysPerWeek);
+
     return {
       split,
       daysPerWeek,
-      workoutDays,
+      workoutDays: fullWeek,
     };
+  }
+
+  /**
+   * Create a 7-day weekly schedule with rest days
+   */
+  private static createWeeklySchedule(
+    workoutDays: WorkoutDay[],
+    trainingDays: number
+  ): WorkoutDay[] {
+    const week: WorkoutDay[] = [...workoutDays];
+    const restDaysNeeded = 7 - trainingDays;
+
+    // Add rest days to fill the week
+    for (let i = 0; i < restDaysNeeded; i++) {
+      week.push({
+        name: "Rest Day",
+        focus: [],
+        exercises: [],
+        isRestDay: true,
+      });
+    }
+
+    return week;
   }
 
   /**
@@ -288,14 +315,20 @@ export class WorkoutGenerator {
 
     plan.workoutDays.forEach((day, index) => {
       output += `## Day ${index + 1}: ${day.name}\n`;
-      output += `**Focus:** ${day.focus.join(", ")}\n\n`;
-      output += `**Exercises:**\n`;
+      
+      if (day.isRestDay) {
+        output += `**Rest & Recovery Day**\n\n`;
+        output += `Take this day to let your muscles recover and grow. Stay active with light walking or stretching if you'd like!\n\n`;
+      } else {
+        output += `**Focus:** ${day.focus.join(", ")}\n\n`;
+        output += `**Exercises:**\n`;
 
-      day.exercises.forEach((exercise, i) => {
-        output += `${i + 1}. **${exercise.name}**\n`;
-        output += `   - Target: ${exercise.targetMuscles.join(", ")}\n`;
-        output += `   - Equipment: ${exercise.equipments.join(", ")}\n\n`;
-      });
+        day.exercises.forEach((exercise, i) => {
+          output += `${i + 1}. **${exercise.name}**\n`;
+          output += `   - Target: ${exercise.targetMuscles.join(", ")}\n`;
+          output += `   - Equipment: ${exercise.equipments.join(", ")}\n\n`;
+        });
+      }
 
       output += "\n";
     });

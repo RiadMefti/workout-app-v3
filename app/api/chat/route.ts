@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: github("openai/o4-mini"),
+    model: github("openai/gpt-4.1"),
     messages: convertToModelMessages(messages),
     system: `You are a friendly fitness coach assistant. ${
       userName ? `The user's name is ${userName}.` : ""
