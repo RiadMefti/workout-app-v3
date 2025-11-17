@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 
 interface Message {
   id: string;
@@ -13,13 +14,8 @@ interface Message {
   timestamp: Date;
 }
 
-export function ChatInterface({
-  userName,
-  userProfilePicture,
-}: {
-  userName?: string;
-  userProfilePicture?: string;
-}) {
+export function ChatInterface() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>(() => [
     {
       id: "1",
@@ -59,7 +55,10 @@ export function ChatInterface({
     setTimeout(() => {
       const coachResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: mockCoachResponses[Math.floor(Math.random() * mockCoachResponses.length)],
+        content:
+          mockCoachResponses[
+            Math.floor(Math.random() * mockCoachResponses.length)
+          ],
         sender: "coach",
         timestamp: new Date(),
       };
@@ -109,9 +108,9 @@ export function ChatInterface({
                   </>
                 ) : (
                   <>
-                    <AvatarImage src={userProfilePicture} />
+                    <AvatarImage src={user?.profilePictureUrl || undefined} />
                     <AvatarFallback>
-                      {userName?.[0]?.toUpperCase() || "U"}
+                      {user?.firstName?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </>
                 )}
@@ -147,9 +146,18 @@ export function ChatInterface({
               <div className="flex flex-col items-start">
                 <div className="rounded-lg px-4 py-3 bg-muted">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div
+                      className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <div
+                      className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
                   </div>
                 </div>
               </div>
