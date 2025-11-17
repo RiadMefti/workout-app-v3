@@ -88,7 +88,9 @@ export function WorkoutPlanDisplay({
       {/* Weekly Calendar View */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base md:text-lg">Weekly Schedule</CardTitle>
+          <CardTitle className="text-base md:text-lg">
+            Weekly Schedule
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-1 md:gap-2">
@@ -124,7 +126,9 @@ export function WorkoutPlanDisplay({
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg md:text-xl">
                 {currentDay.dayLabel}
-                {currentDay.isRest ? ": Rest Day" : `: ${currentDay.workout?.name}`}
+                {currentDay.isRest
+                  ? ": Rest Day"
+                  : `: ${currentDay.workout?.name}`}
               </CardTitle>
               {!currentDay.isRest && currentDay.workout && (
                 <span className="text-xs md:text-sm text-muted-foreground">
@@ -142,10 +146,12 @@ export function WorkoutPlanDisplay({
             {currentDay.isRest ? (
               <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
                 <div className="text-5xl md:text-6xl mb-4">🛌</div>
-                <h3 className="text-lg md:text-xl font-semibold mb-2">Rest & Recovery</h3>
+                <h3 className="text-lg md:text-xl font-semibold mb-2">
+                  Rest & Recovery
+                </h3>
                 <p className="text-sm md:text-base text-muted-foreground max-w-md">
-                  Take this day to let your muscles recover and grow. Stay active
-                  with light walking or stretching if you&apos;d like!
+                  Take this day to let your muscles recover and grow. Stay
+                  active with light walking or stretching if you&apos;d like!
                 </p>
               </div>
             ) : (

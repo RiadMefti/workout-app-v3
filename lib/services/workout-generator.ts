@@ -47,7 +47,11 @@ export class WorkoutGenerator {
 
     // Adjust exercises per muscle group based on experience
     const exercisesPerMuscle =
-      experienceLevel === "beginner" ? 1 : experienceLevel === "intermediate" ? 2 : 3;
+      experienceLevel === "beginner"
+        ? 1
+        : experienceLevel === "intermediate"
+        ? 2
+        : 3;
 
     let workoutDays: WorkoutDay[];
 
@@ -174,22 +178,38 @@ export class WorkoutGenerator {
       {
         name: "Upper Body 1",
         focus: upperMuscles,
-        exercises: this.selectExercises(upperMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          upperMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
       {
         name: "Lower Body 1",
         focus: lowerMuscles,
-        exercises: this.selectExercises(lowerMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          lowerMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
       {
         name: "Upper Body 2",
         focus: upperMuscles,
-        exercises: this.selectExercises(upperMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          upperMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
       {
         name: "Lower Body 2",
         focus: lowerMuscles,
-        exercises: this.selectExercises(lowerMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          lowerMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
     ];
   }
@@ -203,8 +223,18 @@ export class WorkoutGenerator {
     equipment?: Equipment[]
   ): WorkoutDay[] {
     const pushMuscles: TargetMuscle[] = ["pectorals", "delts", "triceps"];
-    const pullMuscles: TargetMuscle[] = ["lats", "upper back", "biceps", "traps"];
-    const legMuscles: TargetMuscle[] = ["quads", "hamstrings", "glutes", "calves"];
+    const pullMuscles: TargetMuscle[] = [
+      "lats",
+      "upper back",
+      "biceps",
+      "traps",
+    ];
+    const legMuscles: TargetMuscle[] = [
+      "quads",
+      "hamstrings",
+      "glutes",
+      "calves",
+    ];
 
     const days: WorkoutDay[] = [];
 
@@ -213,17 +243,29 @@ export class WorkoutGenerator {
         {
           name: `Push ${i + 1}`,
           focus: pushMuscles,
-          exercises: this.selectExercises(pushMuscles, exercisesPerMuscle, equipment),
+          exercises: this.selectExercises(
+            pushMuscles,
+            exercisesPerMuscle,
+            equipment
+          ),
         },
         {
           name: `Pull ${i + 1}`,
           focus: pullMuscles,
-          exercises: this.selectExercises(pullMuscles, exercisesPerMuscle, equipment),
+          exercises: this.selectExercises(
+            pullMuscles,
+            exercisesPerMuscle,
+            equipment
+          ),
         },
         {
           name: `Legs ${i + 1}`,
           focus: legMuscles,
-          exercises: this.selectExercises(legMuscles, exercisesPerMuscle, equipment),
+          exercises: this.selectExercises(
+            legMuscles,
+            exercisesPerMuscle,
+            equipment
+          ),
         }
       );
     }
@@ -239,8 +281,18 @@ export class WorkoutGenerator {
     equipment?: Equipment[]
   ): WorkoutDay[] {
     const pushMuscles: TargetMuscle[] = ["pectorals", "delts", "triceps"];
-    const pullMuscles: TargetMuscle[] = ["lats", "upper back", "biceps", "traps"];
-    const legMuscles: TargetMuscle[] = ["quads", "hamstrings", "glutes", "calves"];
+    const pullMuscles: TargetMuscle[] = [
+      "lats",
+      "upper back",
+      "biceps",
+      "traps",
+    ];
+    const legMuscles: TargetMuscle[] = [
+      "quads",
+      "hamstrings",
+      "glutes",
+      "calves",
+    ];
     const upperMuscles: TargetMuscle[] = [
       "pectorals",
       "lats",
@@ -259,27 +311,47 @@ export class WorkoutGenerator {
       {
         name: "Push",
         focus: pushMuscles,
-        exercises: this.selectExercises(pushMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          pushMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
       {
         name: "Pull",
         focus: pullMuscles,
-        exercises: this.selectExercises(pullMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          pullMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
       {
         name: "Legs",
         focus: legMuscles,
-        exercises: this.selectExercises(legMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          legMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
       {
         name: "Upper",
         focus: upperMuscles,
-        exercises: this.selectExercises(upperMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          upperMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
       {
         name: "Lower",
         focus: lowerMuscles,
-        exercises: this.selectExercises(lowerMuscles, exercisesPerMuscle, equipment),
+        exercises: this.selectExercises(
+          lowerMuscles,
+          exercisesPerMuscle,
+          equipment
+        ),
       },
     ];
   }
@@ -311,11 +383,13 @@ export class WorkoutGenerator {
    * Format workout plan for LLM display
    */
   static formatPlanForDisplay(plan: WorkoutPlan): string {
-    let output = `# ${plan.daysPerWeek} Day ${this.getSplitName(plan.split)} Workout Plan\n\n`;
+    let output = `# ${plan.daysPerWeek} Day ${this.getSplitName(
+      plan.split
+    )} Workout Plan\n\n`;
 
     plan.workoutDays.forEach((day, index) => {
       output += `## Day ${index + 1}: ${day.name}\n`;
-      
+
       if (day.isRestDay) {
         output += `**Rest & Recovery Day**\n\n`;
         output += `Take this day to let your muscles recover and grow. Stay active with light walking or stretching if you'd like!\n\n`;
