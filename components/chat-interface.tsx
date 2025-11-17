@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,51 +20,68 @@ export function ChatInterface() {
     {
       id: "1",
       content:
-        "Hey! I'm your personal fitness coach. I'm here to help you achieve your fitness goals. What would you like to work on today?",
+        "Hey! I'm your personal fitness coach powered by AI. I'm here to help you achieve your fitness goals. What would you like to work on today?",
       sender: "coach",
       timestamp: new Date(),
     },
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isCoachTyping, setIsCoachTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const mockCoachResponses = [
-    "That's a great goal! Let's work on building a plan to achieve that.",
-    "I love your enthusiasm! Here's what I suggest we focus on...",
-    "Excellent! Let's break this down into manageable steps.",
-    "That's awesome! I can definitely help you with that.",
-    "Great question! Here's what you need to know...",
-    "Perfect! Let's tackle this together.",
-  ];
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim() || isCoachTyping) return;
 
-    const newMessage: Message = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
       sender: "user",
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue("");
     setIsCoachTyping(true);
 
-    // Simulate coach response after 2 seconds
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          request: currentInput,
+          model: "gpt-4o-mini",
+        }),
+      });
+
+      const result = await response.json();
+
       const coachResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content:
-          mockCoachResponses[
-            Math.floor(Math.random() * mockCoachResponses.length)
-          ],
+        content: result.success && result.text
+          ? result.text
+          : "I'm sorry, I couldn't generate a response right now. Please try again.",
         sender: "coach",
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, coachResponse]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "Sorry, I encountered an error. Please try again.",
+        sender: "coach",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsCoachTyping(false);
-    }, 2000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -127,7 +144,7 @@ export function ChatInterface() {
                       : "bg-primary text-primary-foreground"
                   }`}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 </div>
                 <span className="text-xs text-muted-foreground mt-1">
                   {message.timestamp.toTimeString().slice(0, 5)}
@@ -163,6 +180,9 @@ export function ChatInterface() {
               </div>
             </div>
           )}
+
+          {/* Scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
