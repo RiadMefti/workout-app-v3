@@ -27,7 +27,9 @@ export function ChatInterface() {
         parts: [
           {
             type: "text",
-            text: `Hello ${user?.firstName || "there"}! What can I do for you? I can help you create a personalized workout plan if you'd like.`,
+            text: `Hello ${
+              user?.firstName || "there"
+            }! What can I do for you? I can help you create a personalized workout plan if you'd like.`,
           },
         ],
       },
@@ -35,10 +37,11 @@ export function ChatInterface() {
     [user?.firstName]
   );
 
-  const { messages, sendMessage, status } =
-    useChat<UIMessage<unknown, Record<string, never>, AppTools>>({
-      messages: initialMessages,
-    });
+  const { messages, sendMessage, status } = useChat<
+    UIMessage<unknown, Record<string, never>, AppTools>
+  >({
+    messages: initialMessages,
+  });
 
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -163,7 +166,9 @@ export function ChatInterface() {
                           daysOptions={part.output.daysOptions}
                           onSelect={(days) => {
                             sendMessage({
-                              text: `I want to train ${days} ${days === 1 ? "day" : "days"} per week`,
+                              text: `I want to train ${days} ${
+                                days === 1 ? "day" : "days"
+                              } per week`,
                             });
                           }}
                         />

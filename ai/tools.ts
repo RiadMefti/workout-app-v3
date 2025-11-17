@@ -1,9 +1,13 @@
 import { tool as createTool } from "ai";
 import { z } from "zod";
-import { WorkoutGenerator, type WorkoutPlan } from "@/lib/services/workout-generator";
+import {
+  WorkoutGenerator,
+  type WorkoutPlan,
+} from "@/lib/services/workout-generator";
 
 export const showWorkoutPlanQuestions = createTool({
-  description: "Display workout plan configuration UI with experience level options",
+  description:
+    "Display workout plan configuration UI with experience level options",
   inputSchema: z.object({
     userName: z.string().describe("The user's first name"),
   }),
@@ -31,10 +35,17 @@ export const showWorkoutDaysSelector = createTool({
 });
 
 export const generateWorkoutPlan = createTool({
-  description: "Generate a complete workout plan based on user's experience level and training frequency",
+  description:
+    "Generate a complete workout plan based on user's experience level and training frequency",
   inputSchema: z.object({
-    experienceLevel: z.enum(["beginner", "intermediate", "advanced"]).describe("User's fitness experience level"),
-    daysPerWeek: z.number().min(1).max(7).describe("Number of training days per week"),
+    experienceLevel: z
+      .enum(["beginner", "intermediate", "advanced"])
+      .describe("User's fitness experience level"),
+    daysPerWeek: z
+      .number()
+      .min(1)
+      .max(7)
+      .describe("Number of training days per week"),
   }),
   execute: async function ({ experienceLevel, daysPerWeek }) {
     const plan = WorkoutGenerator.generatePlan({

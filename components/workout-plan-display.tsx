@@ -26,7 +26,11 @@ interface WorkoutPlanDisplayProps {
   daysPerWeek: number;
 }
 
-export function WorkoutPlanDisplay({ plan, split, daysPerWeek }: WorkoutPlanDisplayProps) {
+export function WorkoutPlanDisplay({
+  plan,
+  split,
+  daysPerWeek,
+}: WorkoutPlanDisplayProps) {
   const getSplitName = (splitType: string): string => {
     switch (splitType) {
       case "fullbody":
@@ -50,7 +54,8 @@ export function WorkoutPlanDisplay({ plan, split, daysPerWeek }: WorkoutPlanDisp
             {daysPerWeek} Day {getSplitName(split)} Workout Plan
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Your personalized training program focusing on compound movements and proven exercises
+            Your personalized training program focusing on compound movements
+            and proven exercises
           </p>
         </CardHeader>
       </Card>
@@ -99,8 +104,10 @@ export function WorkoutPlanDisplay({ plan, split, daysPerWeek }: WorkoutPlanDisp
       <Card className="bg-muted/50">
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
-            💡 <strong>Training Tips:</strong> Focus on progressive overload by gradually increasing weight or reps each week. 
-            Rest 2-3 minutes between sets for compound movements, and 60-90 seconds for isolation exercises.
+            💡 <strong>Training Tips:</strong> Focus on progressive overload by
+            gradually increasing weight or reps each week. Rest 2-3 minutes
+            between sets for compound movements, and 60-90 seconds for isolation
+            exercises.
           </p>
         </CardContent>
       </Card>
