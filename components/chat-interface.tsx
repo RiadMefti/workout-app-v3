@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,36 @@ import { Send } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useChat } from "@ai-sdk/react";
 import { WorkoutPlanQuestions } from "./workout-plan-questions";
+import { WorkoutDaysSelector } from "./workout-days-selector";
+import type { UIMessage } from "ai";
+import type { AppTools } from "@/ai/tools";
 
 export function ChatInterface() {
   const { user } = useAuth();
-  const { messages, sendMessage, status } = useChat();
+
+  // Memoize initial messages to prevent recreation on re-renders
+  const initialMessages = useMemo<
+    UIMessage<unknown, Record<string, never>, AppTools>[]
+  >(
+    () => [
+      {
+        id: "welcome",
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text: `Hello ${user?.firstName || "there"}! What can I do for you? I can help you create a personalized workout plan if you'd like.`,
+          },
+        ],
+      },
+    ],
+    [user?.firstName]
+  );
+
+  const { messages, sendMessage, status } =
+    useChat<UIMessage<unknown, Record<string, never>, AppTools>>({
+      messages: initialMessages,
+    });
 
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -109,19 +135,14 @@ export function ChatInterface() {
 
                 {/* Tool invocations */}
                 {message.parts.map((part, i) => {
+                  // Type-safe tool rendering - TypeScript knows all tools in AppTools!
                   if (part.type === "tool-showWorkoutPlanQuestions") {
                     if (part.state === "output-available") {
-                      const output = part.output as {
-                        type: string;
-                        userName: string;
-                        options: string[];
-                      };
-
                       return (
                         <WorkoutPlanQuestions
                           key={`${message.id}-${i}`}
-                          userName={output.userName}
-                          options={output.options}
+                          userName={part.output.userName}
+                          options={part.output.options}
                           onSelect={(level) => {
                             sendMessage({
                               text: `I'm ${level.toLowerCase()} level`,
@@ -131,6 +152,24 @@ export function ChatInterface() {
                       );
                     }
                   }
+
+                  if (part.type === "tool-showWorkoutDaysSelector") {
+                    if (part.state === "output-available") {
+                      return (
+                        <WorkoutDaysSelector
+                          key={`${message.id}-${i}`}
+                          experienceLevel={part.output.experienceLevel}
+                          daysOptions={part.output.daysOptions}
+                          onSelect={(days) => {
+                            sendMessage({
+                              text: `I want to train ${days} ${days === 1 ? "day" : "days"} per week`,
+                            });
+                          }}
+                        />
+                      );
+                    }
+                  }
+
                   return null;
                 })}
               </div>

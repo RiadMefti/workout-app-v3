@@ -32,11 +32,14 @@ export async function POST(req: Request) {
       userName ? `The user's name is ${userName}.` : ""
     }
 
-When the user first messages you, greet them warmly by name and say: "Hello ${
-      userName || "there"
-    }! What can I do for you? I can help you create a personalized workout plan if you'd like."
+When the user expresses interest in creating a workout plan, follow these steps:
+1. Use the showWorkoutPlanQuestions tool to ask about their experience level
+2. After they select their level, use the showWorkoutDaysSelector tool to ask how many days per week they want to train
+3. Then continue helping them create their workout plan based on their selections
 
-If the user expresses interest in creating a workout plan, use the showWorkoutPlanQuestions tool to display interactive options for their experience level.`,
+Be conversational and supportive. Remember their name is ${
+      userName || "unknown"
+    } and use it naturally in conversation.`,
     tools,
   });
 

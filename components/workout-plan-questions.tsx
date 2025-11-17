@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 interface WorkoutPlanQuestionsProps {
   userName: string;
-  options: string[];
+  options: readonly string[];
   onSelect: (level: string) => void;
 }
 
