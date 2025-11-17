@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useChat } from "@ai-sdk/react";
+import { WorkoutPlanQuestions } from "./workout-plan-questions";
 
 export function ChatInterface() {
   const { user } = useAuth();
-  const { messages, sendMessage } = useChat();
+  const { messages, sendMessage, status } = useChat();
 
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -77,20 +78,21 @@ export function ChatInterface() {
                 )}
               </Avatar>
               <div
-                className={`flex flex-col max-w-[70%] ${
+                className={`flex flex-col gap-2 max-w-[70%] ${
                   message.role === "user" ? "items-end" : "items-start"
                 }`}
               >
-                <div
-                  className={`rounded-lg px-4 py-2 ${
-                    message.role === "assistant"
-                      ? "bg-muted"
-                      : "bg-primary text-primary-foreground"
-                  }`}
-                >
-                  {message.parts.map((part, i) => {
-                    switch (part.type) {
-                      case "text":
+                {/* Text messages */}
+                {message.parts.some((p) => p.type === "text") && (
+                  <div
+                    className={`rounded-lg px-4 py-2 ${
+                      message.role === "assistant"
+                        ? "bg-muted"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {message.parts.map((part, i) => {
+                      if (part.type === "text") {
                         return (
                           <p
                             key={`${message.id}-${i}`}
@@ -99,15 +101,60 @@ export function ChatInterface() {
                             {part.text}
                           </p>
                         );
+                      }
+                      return null;
+                    })}
+                  </div>
+                )}
 
-                      default:
-                        return null;
+                {/* Tool invocations */}
+                {message.parts.map((part, i) => {
+                  if (part.type === "tool-showWorkoutPlanQuestions") {
+                    if (part.state === "output-available") {
+                      const output = part.output as {
+                        type: string;
+                        userName: string;
+                        options: string[];
+                      };
+
+                      return (
+                        <WorkoutPlanQuestions
+                          key={`${message.id}-${i}`}
+                          userName={output.userName}
+                          options={output.options}
+                          onSelect={(level) => {
+                            sendMessage({
+                              text: `I'm ${level.toLowerCase()} level`,
+                            });
+                          }}
+                        />
+                      );
                     }
-                  })}
-                </div>
+                  }
+                  return null;
+                })}
               </div>
             </div>
           ))}
+
+          {/* Loading indicator */}
+          {(status === "submitted" || status === "streaming") && (
+            <div className="flex gap-3">
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarImage src="https://api.dicebear.com/7.x/bottts/svg?seed=coach&backgroundColor=b6e3f4" />
+                <AvatarFallback>🏋️</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-2 max-w-[70%] items-start">
+                <div className="rounded-lg px-4 py-2 bg-muted">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                    <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                    <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Scroll anchor */}
           <div ref={messagesEndRef} />
