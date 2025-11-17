@@ -1,20 +1,14 @@
-import { withAuth, signOut } from "@workos-inc/authkit-nextjs";
+import { withAuth } from "@workos-inc/authkit-nextjs";
+import { ChatInterface } from "@/components/chat-interface";
 
 export default async function HomePage() {
   // User is guaranteed to exist because of proxy.ts protection
   const { user } = await withAuth();
 
   return (
-    <div>
-      <p>Hello{user?.firstName && `, ${user.firstName}`}!</p>
-      <form
-        action={async () => {
-          'use server';
-          await signOut();
-        }}
-      >
-        <button type="submit">Sign out</button>
-      </form>
-    </div>
+    <ChatInterface
+      userName={user?.firstName || undefined}
+      userProfilePicture={user?.profilePictureUrl || undefined}
+    />
   );
 }
