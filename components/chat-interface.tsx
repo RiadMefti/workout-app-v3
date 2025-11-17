@@ -30,9 +30,19 @@ export function ChatInterface({
     },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [isCoachTyping, setIsCoachTyping] = useState(false);
+
+  const mockCoachResponses = [
+    "That's a great goal! Let's work on building a plan to achieve that.",
+    "I love your enthusiasm! Here's what I suggest we focus on...",
+    "Excellent! Let's break this down into manageable steps.",
+    "That's awesome! I can definitely help you with that.",
+    "Great question! Here's what you need to know...",
+    "Perfect! Let's tackle this together.",
+  ];
 
   const handleSend = () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isCoachTyping) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -41,8 +51,21 @@ export function ChatInterface({
       timestamp: new Date(),
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
     setInputValue("");
+    setIsCoachTyping(true);
+
+    // Simulate coach response after 2 seconds
+    setTimeout(() => {
+      const coachResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: mockCoachResponses[Math.floor(Math.random() * mockCoachResponses.length)],
+        sender: "coach",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, coachResponse]);
+      setIsCoachTyping(false);
+    }, 2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -81,7 +104,7 @@ export function ChatInterface({
               <Avatar className="h-8 w-8 shrink-0">
                 {message.sender === "coach" ? (
                   <>
-                    <AvatarImage src="https://api.dicebear.com/7.x/bottts/svg?seed=coach&backgroundColor=b6e3f4" />
+                    <AvatarImage src="/avatar.svg" />
                     <AvatarFallback>🏋️</AvatarFallback>
                   </>
                 ) : (
@@ -113,6 +136,25 @@ export function ChatInterface({
               </div>
             </div>
           ))}
+
+          {/* Typing Indicator */}
+          {isCoachTyping && (
+            <div className="flex gap-3">
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarImage src="https://api.dicebear.com/7.x/bottts/svg?seed=coach&backgroundColor=b6e3f4" />
+                <AvatarFallback>🏋️</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-start">
+                <div className="rounded-lg px-4 py-3 bg-muted">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
