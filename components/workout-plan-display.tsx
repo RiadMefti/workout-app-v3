@@ -1,13 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Exercise {
   name: string;
   targetMuscles: string[];
   equipments: string[];
+  gifUrl?: string;
+  instructions?: string[];
 }
 
 interface WorkoutDay {
@@ -42,6 +52,13 @@ export function WorkoutPlanDisplay({
   daysPerWeek,
 }: WorkoutPlanDisplayProps) {
   const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleExerciseClick = (exercise: Exercise) => {
+    setSelectedExercise(exercise);
+    setIsDialogOpen(true);
+  };
 
   const getSplitName = (splitType: string): string => {
     switch (splitType) {
@@ -158,9 +175,10 @@ export function WorkoutPlanDisplay({
               <ScrollArea className="h-[300px] md:h-[400px] pr-4">
                 <div className="space-y-3 md:space-y-4">
                   {currentDay.workout?.exercises.map((exercise, i) => (
-                    <div
+                    <button
                       key={i}
-                      className="flex items-start gap-3 md:gap-4 p-3 md:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      onClick={() => handleExerciseClick(exercise)}
+                      className="w-full flex items-start gap-3 md:gap-4 p-3 md:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors text-left"
                     >
                       <div className="flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm md:text-base font-semibold">
                         {i + 1}
@@ -187,7 +205,7 @@ export function WorkoutPlanDisplay({
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </ScrollArea>
@@ -196,17 +214,44 @@ export function WorkoutPlanDisplay({
         </Card>
       )}
 
-      {/* Training Tips */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-4 md:pt-6">
-          <p className="text-xs md:text-sm text-muted-foreground">
-            💡 <strong>Training Tips:</strong> Focus on progressive overload by
-            gradually increasing weight or reps each week. Rest 2-3 minutes
-            between sets for compound movements, and 60-90 seconds for isolation
-            exercises.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Exercise Detail Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {selectedExercise?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Target: {selectedExercise?.targetMuscles.join(", ")} •{" "}
+              Equipment: {selectedExercise?.equipments.join(", ")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedExercise?.gifUrl && (
+              <div className="flex justify-center bg-muted rounded-lg p-4">
+                <Image
+                  src={selectedExercise.gifUrl}
+                  alt={selectedExercise.name}
+                  width={400}
+                  height={400}
+                  className="max-w-full h-auto rounded-lg"
+                  unoptimized
+                />
+              </div>
+            )}
+            {selectedExercise?.instructions && selectedExercise.instructions.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2">Instructions:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                  {selectedExercise.instructions.map((instruction, i) => (
+                    <li key={i}>{instruction}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
