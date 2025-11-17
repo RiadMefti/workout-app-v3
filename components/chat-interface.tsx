@@ -6,27 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-
-interface Message {
-  id: string;
-  content: string;
-  sender: "coach" | "user";
-  timestamp: Date;
-}
+import { useChat } from "@ai-sdk/react";
 
 export function ChatInterface() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(() => [
-    {
-      id: "1",
-      content:
-        "Hey! I'm your personal fitness coach powered by AI. I'm here to help you achieve your fitness goals. What would you like to work on today?",
-      sender: "coach",
-      timestamp: new Date(),
-    },
-  ]);
+  const { messages, sendMessage } = useChat();
+
   const [inputValue, setInputValue] = useState("");
-  const [isCoachTyping, setIsCoachTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -34,54 +20,12 @@ export function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || isCoachTyping) return;
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inputValue.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
-      sender: "user",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    const currentInput = inputValue;
+    sendMessage({ text: inputValue });
     setInputValue("");
-    setIsCoachTyping(true);
-
-    try {
-      const response = await fetch("/api/agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          request: currentInput,
-          model: "gpt-4o-mini",
-        }),
-      });
-
-      const result = await response.json();
-
-      const coachResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: result.success && result.text
-          ? result.text
-          : "I'm sorry, I couldn't generate a response right now. Please try again.",
-        sender: "coach",
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, coachResponse]);
-    } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "Sorry, I encountered an error. Please try again.",
-        sender: "coach",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsCoachTyping(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -114,13 +58,13 @@ export function ChatInterface() {
             <div
               key={message.id}
               className={`flex gap-3 ${
-                message.sender === "user" ? "flex-row-reverse" : ""
+                message.role === "user" ? "flex-row-reverse" : ""
               }`}
             >
               <Avatar className="h-8 w-8 shrink-0">
-                {message.sender === "coach" ? (
+                {message.role === "assistant" ? (
                   <>
-                    <AvatarImage src="/avatar.svg" />
+                    <AvatarImage src="https://api.dicebear.com/7.x/bottts/svg?seed=coach&backgroundColor=b6e3f4" />
                     <AvatarFallback>🏋️</AvatarFallback>
                   </>
                 ) : (
@@ -134,52 +78,36 @@ export function ChatInterface() {
               </Avatar>
               <div
                 className={`flex flex-col max-w-[70%] ${
-                  message.sender === "user" ? "items-end" : "items-start"
+                  message.role === "user" ? "items-end" : "items-start"
                 }`}
               >
                 <div
                   className={`rounded-lg px-4 py-2 ${
-                    message.sender === "coach"
+                    message.role === "assistant"
                       ? "bg-muted"
                       : "bg-primary text-primary-foreground"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.parts.map((part, i) => {
+                    switch (part.type) {
+                      case "text":
+                        return (
+                          <p
+                            key={`${message.id}-${i}`}
+                            className="text-sm whitespace-pre-wrap"
+                          >
+                            {part.text}
+                          </p>
+                        );
+
+                      default:
+                        return null;
+                    }
+                  })}
                 </div>
-                <span className="text-xs text-muted-foreground mt-1">
-                  {message.timestamp.toTimeString().slice(0, 5)}
-                </span>
               </div>
             </div>
           ))}
-
-          {/* Typing Indicator */}
-          {isCoachTyping && (
-            <div className="flex gap-3">
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarImage src="https://api.dicebear.com/7.x/bottts/svg?seed=coach&backgroundColor=b6e3f4" />
-                <AvatarFallback>🏋️</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start">
-                <div className="rounded-lg px-4 py-3 bg-muted">
-                  <div className="flex gap-1">
-                    <div
-                      className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Scroll anchor */}
           <div ref={messagesEndRef} />

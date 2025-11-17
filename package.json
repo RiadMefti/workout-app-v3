@@ -13,10 +13,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.68",
     "@ai-sdk/openai-compatible": "^1.0.27",
-    "@azure-rest/ai-inference": "^1.0.0-beta.6",
-    "@azure/core-auth": "^1.10.1",
+    "@ai-sdk/react": "^2.0.93",
     "@nanostores/react": "ai/react",
     "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-avatar": "^1.1.11",
