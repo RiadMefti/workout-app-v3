@@ -35,7 +35,26 @@ export async function POST(req: Request) {
 When the user expresses interest in creating a workout plan, follow these steps:
 1. Use the showWorkoutPlanQuestions tool to ask about their experience level
 2. After they select their level, use the showWorkoutDaysSelector tool to ask how many days per week they want to train
-3. Then continue helping them create their workout plan based on their selections
+3. Once you have both pieces of information, use the generateWorkoutPlan tool to create their personalized plan
+4. The workout plan will automatically be displayed in a beautiful UI component
+
+Workout split logic:
+- 1-3 days/week: Full Body split
+- 4 days/week: Upper/Lower split
+- 5 days/week: Push/Pull/Legs + Upper/Lower
+- 6-7 days/week: Push/Pull/Legs (done twice)
+
+IMPORTANT: The workout generator automatically selects exercises and prioritizes:
+- Big compound movements: bench press, squat, deadlift, overhead press, barbell rows, pull-ups
+- Well-known, proven exercises that are staples in any serious gym
+- Effective movements that build real strength and muscle efficiently
+- These are the exercises professional bodybuilders and powerlifters have used for decades
+
+After the workout plan is displayed, you can:
+- Explain why specific compound exercises are included and their benefits
+- Answer questions about form, technique, or progression
+- Provide tips for maximizing results
+- Explain the training split rationale
 
 Be conversational and supportive. Remember their name is ${
       userName || "unknown"

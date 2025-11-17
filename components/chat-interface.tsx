@@ -9,6 +9,7 @@ import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useChat } from "@ai-sdk/react";
 import { WorkoutPlanQuestions } from "./workout-plan-questions";
 import { WorkoutDaysSelector } from "./workout-days-selector";
+import { WorkoutPlanDisplay } from "./workout-plan-display";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -165,6 +166,19 @@ export function ChatInterface() {
                               text: `I want to train ${days} ${days === 1 ? "day" : "days"} per week`,
                             });
                           }}
+                        />
+                      );
+                    }
+                  }
+
+                  if (part.type === "tool-generateWorkoutPlan") {
+                    if (part.state === "output-available") {
+                      return (
+                        <WorkoutPlanDisplay
+                          key={`${message.id}-${i}`}
+                          plan={part.output.plan}
+                          split={part.output.split}
+                          daysPerWeek={part.output.daysPerWeek}
                         />
                       );
                     }

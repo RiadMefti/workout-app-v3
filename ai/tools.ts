@@ -1,5 +1,6 @@
 import { tool as createTool } from "ai";
 import { z } from "zod";
+import { WorkoutGenerator, type WorkoutPlan } from "@/lib/services/workout-generator";
 
 export const showWorkoutPlanQuestions = createTool({
   description: "Display workout plan configuration UI with experience level options",
@@ -29,9 +30,33 @@ export const showWorkoutDaysSelector = createTool({
   },
 });
 
+export const generateWorkoutPlan = createTool({
+  description: "Generate a complete workout plan based on user's experience level and training frequency",
+  inputSchema: z.object({
+    experienceLevel: z.enum(["beginner", "intermediate", "advanced"]).describe("User's fitness experience level"),
+    daysPerWeek: z.number().min(1).max(7).describe("Number of training days per week"),
+  }),
+  execute: async function ({ experienceLevel, daysPerWeek }) {
+    const plan = WorkoutGenerator.generatePlan({
+      daysPerWeek,
+      experienceLevel,
+    });
+
+    const formatted = WorkoutGenerator.formatPlanForDisplay(plan);
+
+    return {
+      plan,
+      formattedPlan: formatted,
+      split: plan.split,
+      daysPerWeek: plan.daysPerWeek,
+    };
+  },
+});
+
 export const tools = {
   showWorkoutPlanQuestions,
   showWorkoutDaysSelector,
+  generateWorkoutPlan,
 };
 
 // Export types for each tool
@@ -53,8 +78,22 @@ export type ShowWorkoutDaysSelectorTool = {
   };
 };
 
+export type GenerateWorkoutPlanTool = {
+  input: {
+    experienceLevel: "beginner" | "intermediate" | "advanced";
+    daysPerWeek: number;
+  };
+  output: {
+    plan: WorkoutPlan;
+    formattedPlan: string;
+    split: string;
+    daysPerWeek: number;
+  };
+};
+
 // Combine all tool types for useChat
 export type AppTools = {
   showWorkoutPlanQuestions: ShowWorkoutPlanQuestionsTool;
   showWorkoutDaysSelector: ShowWorkoutDaysSelectorTool;
+  generateWorkoutPlan: GenerateWorkoutPlanTool;
 };
