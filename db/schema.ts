@@ -8,5 +8,4 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   profilePictureUrl: text("profile_picture_url"),
   createdAt: timestamp("created_at", { mode: "string" }).notNull(),
-  updatedAt: timestamp("updated_at", { mode: "string" }).notNull(),
 });

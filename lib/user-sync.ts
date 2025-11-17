@@ -28,7 +28,6 @@ export async function syncUser(workosUser: User) {
     lastName: workosUser.lastName ?? null,
     profilePictureUrl: workosUser.profilePictureUrl ?? null,
     createdAt: workosUser.createdAt,
-    updatedAt: workosUser.updatedAt,
   });
 }
 
