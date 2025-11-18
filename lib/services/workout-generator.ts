@@ -118,6 +118,16 @@ export class WorkoutGenerator {
   }
 
   /**
+   * Public method to create a 7-day weekly schedule from AI-generated workout days
+   */
+  static createWeeklyScheduleFromDays(
+    workoutDays: WorkoutDay[],
+    trainingDays: number
+  ): WorkoutDay[] {
+    return this.createWeeklySchedule(workoutDays, trainingDays);
+  }
+
+  /**
    * Generate full body workout days (1-3x per week)
    */
   private static generateFullBodyDays(

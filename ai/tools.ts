@@ -3,7 +3,10 @@ import { z } from "zod";
 import {
   WorkoutGenerator,
   type WorkoutPlan,
+  type WorkoutDay,
 } from "@/lib/services/workout-generator";
+import { ExerciseService } from "@/lib/services/exercise-service";
+import type { Equipment, TargetMuscle } from "@/lib/types/exercise";
 
 export const showWorkoutPlanQuestions = createTool({
   description:
@@ -34,32 +37,123 @@ export const showWorkoutDaysSelector = createTool({
   },
 });
 
+export const searchExercises = createTool({
+  description:
+    "Search for exercises in the database by target muscles and equipment. Use this to find specific exercises when building a workout plan. Returns exercise details including name, target muscles, equipment, gif URL, and instructions.",
+  inputSchema: z.object({
+    targetMuscles: z
+      .array(
+        z.enum([
+          "abductors",
+          "abs",
+          "adductors",
+          "biceps",
+          "calves",
+          "cardiovascular system",
+          "delts",
+          "forearms",
+          "glutes",
+          "hamstrings",
+          "lats",
+          "levator scapulae",
+          "pectorals",
+          "quads",
+          "serratus anterior",
+          "spine",
+          "traps",
+          "triceps",
+          "upper back",
+        ])
+      )
+      .optional()
+      .describe("Target muscle groups to search for"),
+    equipments: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Equipment types to filter by (e.g., 'barbell', 'dumbbell', 'body weight', 'cable', 'kettlebell', 'band')"
+      ),
+    limit: z
+      .number()
+      .min(1)
+      .max(50)
+      .default(10)
+      .describe("Maximum number of exercises to return"),
+  }),
+  execute: async function ({ targetMuscles, equipments, limit }) {
+    const result = ExerciseService.search({
+      targetMuscles: targetMuscles as TargetMuscle[] | undefined,
+      equipments: equipments as Equipment[] | undefined,
+      limit: limit || 10,
+    });
+
+    return {
+      exercises: result.exercises,
+      total: result.total,
+    };
+  },
+});
+
 export const generateWorkoutPlan = createTool({
   description:
-    "Generate a complete workout plan based on user's experience level and training frequency",
+    "Generate and display a complete workout plan. Provide the workout structure with day names (e.g., 'Push', 'Pull', 'Legs', 'Upper Body', 'Lower Body', 'Full Body') and exercises for each day. The exercises should be actual exercise objects from the database that you found using searchExercises.",
   inputSchema: z.object({
-    experienceLevel: z
-      .enum(["beginner", "intermediate", "advanced"])
-      .describe("User's fitness experience level"),
     daysPerWeek: z
       .number()
       .min(1)
       .max(7)
       .describe("Number of training days per week"),
+    split: z
+      .enum([
+        "fullbody",
+        "upper-lower",
+        "push-pull-legs",
+        "push-pull-legs-upper-lower",
+      ])
+      .describe("The workout split type"),
+    workoutDays: z
+      .array(
+        z.object({
+          name: z.string().describe("Day name (e.g., 'Push', 'Pull', 'Legs')"),
+          focus: z
+            .array(z.string())
+            .describe("Muscle groups focused on this day"),
+          exercises: z
+            .array(
+              z.object({
+                exerciseId: z.string(),
+                name: z.string(),
+                gifUrl: z.string(),
+                targetMuscles: z.array(z.string()),
+                equipments: z.array(z.string()),
+                instructions: z.array(z.string()).optional(),
+              })
+            )
+            .describe("List of exercises for this workout day"),
+        })
+      )
+      .describe("Array of workout days with their exercises"),
   }),
-  execute: async function ({ experienceLevel, daysPerWeek }) {
-    const plan = WorkoutGenerator.generatePlan({
+  execute: async function ({ daysPerWeek, split, workoutDays }) {
+    // Add rest days to create a 7-day week
+    const fullWeek = WorkoutGenerator.createWeeklyScheduleFromDays(
+      workoutDays as WorkoutDay[],
+      daysPerWeek
+    );
+
+    const plan: WorkoutPlan = {
+      split,
       daysPerWeek,
-      experienceLevel,
-    });
+      workoutDays: fullWeek,
+    };
 
     const formatted = WorkoutGenerator.formatPlanForDisplay(plan);
 
     return {
       plan,
       formattedPlan: formatted,
-      split: plan.split,
-      daysPerWeek: plan.daysPerWeek,
+      split,
+      daysPerWeek,
     };
   },
 });
@@ -67,6 +161,7 @@ export const generateWorkoutPlan = createTool({
 export const tools = {
   showWorkoutPlanQuestions,
   showWorkoutDaysSelector,
+  searchExercises,
   generateWorkoutPlan,
 };
 
@@ -89,10 +184,45 @@ export type ShowWorkoutDaysSelectorTool = {
   };
 };
 
+export type SearchExercisesTool = {
+  input: {
+    targetMuscles?: string[];
+    equipments?: string[];
+    limit?: number;
+  };
+  output: {
+    exercises: Array<{
+      exerciseId: string;
+      name: string;
+      gifUrl: string;
+      targetMuscles: string[];
+      equipments: string[];
+      instructions?: string[];
+    }>;
+    total: number;
+  };
+};
+
 export type GenerateWorkoutPlanTool = {
   input: {
-    experienceLevel: "beginner" | "intermediate" | "advanced";
     daysPerWeek: number;
+    split:
+      | "fullbody"
+      | "upper-lower"
+      | "push-pull-legs"
+      | "push-pull-legs-upper-lower";
+    workoutDays: Array<{
+      name: string;
+      focus: string[];
+      exercises: Array<{
+        exerciseId: string;
+        name: string;
+        gifUrl: string;
+        targetMuscles: string[];
+        equipments: string[];
+        instructions?: string[];
+      }>;
+    }>;
   };
   output: {
     plan: WorkoutPlan;
@@ -106,5 +236,6 @@ export type GenerateWorkoutPlanTool = {
 export type AppTools = {
   showWorkoutPlanQuestions: ShowWorkoutPlanQuestionsTool;
   showWorkoutDaysSelector: ShowWorkoutDaysSelectorTool;
+  searchExercises: SearchExercisesTool;
   generateWorkoutPlan: GenerateWorkoutPlanTool;
 };

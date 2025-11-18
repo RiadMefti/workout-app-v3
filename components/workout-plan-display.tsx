@@ -52,7 +52,9 @@ export function WorkoutPlanDisplay({
   daysPerWeek,
 }: WorkoutPlanDisplayProps) {
   const [selectedDay, setSelectedDay] = useState<number>(1);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null
+  );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleExerciseClick = (exercise: Exercise) => {
@@ -222,8 +224,8 @@ export function WorkoutPlanDisplay({
               {selectedExercise?.name}
             </DialogTitle>
             <DialogDescription>
-              Target: {selectedExercise?.targetMuscles.join(", ")} •{" "}
-              Equipment: {selectedExercise?.equipments.join(", ")}
+              Target: {selectedExercise?.targetMuscles.join(", ")} • Equipment:{" "}
+              {selectedExercise?.equipments.join(", ")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -239,16 +241,17 @@ export function WorkoutPlanDisplay({
                 />
               </div>
             )}
-            {selectedExercise?.instructions && selectedExercise.instructions.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2">Instructions:</h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                  {selectedExercise.instructions.map((instruction, i) => (
-                    <li key={i}>{instruction}</li>
-                  ))}
-                </ol>
-              </div>
-            )}
+            {selectedExercise?.instructions &&
+              selectedExercise.instructions.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Instructions:</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                    {selectedExercise.instructions.map((instruction, i) => (
+                      <li key={i}>{instruction}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
           </div>
         </DialogContent>
       </Dialog>
