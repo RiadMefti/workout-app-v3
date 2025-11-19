@@ -10,6 +10,7 @@ import { useChat } from "@ai-sdk/react";
 import { WorkoutPlanQuestions } from "./workout-plan-questions";
 import { WorkoutDaysSelector } from "./workout-days-selector";
 import { WorkoutPlanDisplay } from "./workout-plan-display";
+import { QuickActions } from "./quick-actions";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -108,33 +109,48 @@ export function ChatInterface() {
                 )}
               </Avatar>
               <div
-                className={`flex flex-col gap-2 max-w-[70%] ${
-                  message.role === "user" ? "items-end" : "items-start"
+                className={`flex flex-col gap-2 ${
+                  message.id === "welcome" && message.role === "assistant"
+                    ? "w-full"
+                    : `max-w-[70%] ${
+                        message.role === "user" ? "items-end" : "items-start"
+                      }`
                 }`}
               >
                 {/* Text messages */}
                 {message.parts.some((p) => p.type === "text") && (
-                  <div
-                    className={`rounded-lg px-4 py-2 ${
-                      message.role === "assistant"
-                        ? "bg-muted"
-                        : "bg-primary text-primary-foreground"
-                    }`}
-                  >
-                    {message.parts.map((part, i) => {
-                      if (part.type === "text") {
-                        return (
-                          <p
-                            key={`${message.id}-${i}`}
-                            className="text-sm whitespace-pre-wrap"
-                          >
-                            {part.text}
-                          </p>
-                        );
-                      }
-                      return null;
-                    })}
-                  </div>
+                  <>
+                    <div
+                      className={`rounded-lg px-4 py-2 ${
+                        message.role === "assistant"
+                          ? "bg-muted"
+                          : "bg-primary text-primary-foreground"
+                      }`}
+                    >
+                      {message.parts.map((part, i) => {
+                        if (part.type === "text") {
+                          return (
+                            <p
+                              key={`${message.id}-${i}`}
+                              className="text-sm whitespace-pre-wrap"
+                            >
+                              {part.text}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    {/* Show QuickActions for welcome message */}
+                    {message.id === "welcome" && message.role === "assistant" && (
+                      <QuickActions
+                        onActionClick={(prompt) => {
+                          sendMessage({ text: prompt });
+                        }}
+                      />
+                    )}
+                  </>
                 )}
 
                 {/* Tool invocations */}
