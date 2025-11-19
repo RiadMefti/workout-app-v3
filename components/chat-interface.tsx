@@ -11,6 +11,7 @@ import { WorkoutPlanQuestions } from "./workout-plan-questions";
 import { WorkoutDaysSelector } from "./workout-days-selector";
 import { WorkoutPlanDisplay } from "./workout-plan-display";
 import { QuickActions } from "./quick-actions";
+import { WorkoutHistoryCalendar } from "./workout-history-calendar";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -45,6 +46,7 @@ export function ChatInterface() {
   });
 
   const [inputValue, setInputValue] = useState("");
+  const [showWorkoutHistory, setShowWorkoutHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -146,11 +148,22 @@ export function ChatInterface() {
                     {message.id === "welcome" && message.role === "assistant" && (
                       <QuickActions
                         onActionClick={(prompt) => {
+                          // Check if it's the workout history action
+                          if (prompt.toLowerCase().includes("workout history")) {
+                            setShowWorkoutHistory(true);
+                          }
                           sendMessage({ text: prompt });
                         }}
                       />
                     )}
                   </>
+                )}
+
+                {/* Show workout history calendar when requested */}
+                {message.role === "assistant" &&
+                 showWorkoutHistory &&
+                 message.parts.some(p => p.type === "text" && p.text.toLowerCase().includes("workout history")) && (
+                  <WorkoutHistoryCalendar />
                 )}
 
                 {/* Tool invocations */}
