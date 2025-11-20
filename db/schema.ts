@@ -68,7 +68,7 @@ export const exerciseSets = pgTable("exercise_sets", {
     .references(() => dayExercises.id, { onDelete: "cascade" }),
   setNumber: integer("set_number").notNull(), // 1, 2, 3...
   targetReps: integer("target_reps").notNull(), // Target number of reps
-  targetWeight: real("target_weight"), // Target weight in lbs/kg (nullable for bodyweight)
+  targetWeight: real("target_weight").notNull(), // Target weight in lbs/kg (use 0 for bodyweight)
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -113,6 +113,6 @@ export const completedSets = pgTable("completed_sets", {
     .references(() => completedExercises.id, { onDelete: "cascade" }),
   setNumber: integer("set_number").notNull(), // 1, 2, 3...
   reps: integer("reps").notNull(), // Actual reps completed
-  weight: real("weight"), // Actual weight used (nullable for bodyweight)
+  weight: real("weight").notNull(), // Actual weight used (use 0 for bodyweight)
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
