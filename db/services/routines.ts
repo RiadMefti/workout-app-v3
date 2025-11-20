@@ -126,82 +126,139 @@ export async function getUserRoutines(userId: string) {
 
 /**
  * Get all routines for a user with full details (days, exercises, sets)
+ * Optimized to avoid N+1 queries by fetching all data in 4 queries
  */
 export async function getUserRoutinesWithDetails(
   userId: string
 ): Promise<RoutineWithDetails[]> {
+  // 1. Get all routines for user
   const routines = await db
     .select()
     .from(workoutRoutines)
     .where(eq(workoutRoutines.userId, userId))
     .orderBy(workoutRoutines.createdAt);
 
-  const routinesWithDetails = await Promise.all(
-    routines.map(async (routine) => {
-      // Get all days for this routine
-      const days = await db
-        .select()
-        .from(workoutDays)
-        .where(eq(workoutDays.routineId, routine.id))
-        .orderBy(workoutDays.dayOrder);
+  if (routines.length === 0) return [];
 
-      // Get exercises and sets for each day
-      const daysWithDetails = await Promise.all(
-        days.map(async (day) => {
-          const exercises = await db
-            .select()
-            .from(dayExercises)
-            .where(eq(dayExercises.dayId, day.id))
-            .orderBy(dayExercises.exerciseOrder);
+  const routineIds = routines.map((r) => r.id);
 
-          const exercisesWithSets = await Promise.all(
-            exercises.map(async (exercise) => {
-              const sets = await db
-                .select()
-                .from(exerciseSets)
-                .where(eq(exerciseSets.exerciseId, exercise.id))
-                .orderBy(exerciseSets.setNumber);
+  // 2. Get all days for these routines in one query
+  const allDays = await db
+    .select()
+    .from(workoutDays)
+    .where(eq(workoutDays.routineId, routineIds[0]))
+    .orderBy(workoutDays.dayOrder);
 
-              return {
-                id: exercise.id,
-                exerciseName: exercise.exerciseName,
-                exerciseOrder: exercise.exerciseOrder,
-                sets: sets.map((set) => ({
-                  id: set.id,
-                  setNumber: set.setNumber,
-                  targetReps: set.targetReps,
-                  targetWeight: set.targetWeight,
-                })),
-              };
-            })
-          );
+  // For multiple routines, we need to fetch all days
+  const daysMap = new Map<string, typeof allDays>();
+  if (routineIds.length > 1) {
+    const allRoutineDays = await db
+      .select()
+      .from(workoutDays)
+      .orderBy(workoutDays.dayOrder);
 
-          return {
-            id: day.id,
-            name: day.name,
-            dayOrder: day.dayOrder,
-            exercises: exercisesWithSets,
-          };
-        })
-      );
+    // Group days by routine
+    allRoutineDays.forEach((day) => {
+      if (routineIds.includes(day.routineId)) {
+        if (!daysMap.has(day.routineId)) {
+          daysMap.set(day.routineId, []);
+        }
+        daysMap.get(day.routineId)!.push(day);
+      }
+    });
+  } else if (routineIds.length === 1) {
+    daysMap.set(routineIds[0], allDays);
+  }
 
-      return {
-        id: routine.id,
-        userId: routine.userId,
-        name: routine.name,
-        isActive: routine.isActive,
-        createdAt: routine.createdAt,
-        updatedAt: routine.updatedAt,
-        days: daysWithDetails,
-      };
-    })
-  );
+  const dayIds = Array.from(daysMap.values())
+    .flat()
+    .map((d) => d.id);
 
-  return routinesWithDetails;
+  if (dayIds.length === 0) {
+    return routines.map((r) => ({
+      ...r,
+      days: [],
+    }));
+  }
+
+  // 3. Get all exercises for these days in one query
+  const allExercises = await db
+    .select()
+    .from(dayExercises)
+    .orderBy(dayExercises.exerciseOrder);
+
+  const exercisesMap = new Map<string, typeof allExercises>();
+  allExercises.forEach((exercise) => {
+    if (dayIds.includes(exercise.dayId)) {
+      if (!exercisesMap.has(exercise.dayId)) {
+        exercisesMap.set(exercise.dayId, []);
+      }
+      exercisesMap.get(exercise.dayId)!.push(exercise);
+    }
+  });
+
+  const exerciseIds = allExercises
+    .filter((e) => dayIds.includes(e.dayId))
+    .map((e) => e.id);
+
+  // 4. Get all sets for these exercises in one query
+  const allSets = await db
+    .select()
+    .from(exerciseSets)
+    .orderBy(exerciseSets.setNumber);
+
+  const setsMap = new Map<string, typeof allSets>();
+  allSets.forEach((set) => {
+    if (exerciseIds.includes(set.exerciseId)) {
+      if (!setsMap.has(set.exerciseId)) {
+        setsMap.set(set.exerciseId, []);
+      }
+      setsMap.get(set.exerciseId)!.push(set);
+    }
+  });
+
+  // Build the nested structure
+  return routines.map((routine) => {
+    const days = daysMap.get(routine.id) || [];
+
+    return {
+      id: routine.id,
+      userId: routine.userId,
+      name: routine.name,
+      isActive: routine.isActive,
+      createdAt: routine.createdAt,
+      updatedAt: routine.updatedAt,
+      days: days.map((day) => {
+        const exercises = exercisesMap.get(day.id) || [];
+
+        return {
+          id: day.id,
+          name: day.name,
+          dayOrder: day.dayOrder,
+          exercises: exercises.map((exercise) => {
+            const sets = setsMap.get(exercise.id) || [];
+
+            return {
+              id: exercise.id,
+              exerciseName: exercise.exerciseName,
+              exerciseOrder: exercise.exerciseOrder,
+              sets: sets.map((set) => ({
+                id: set.id,
+                setNumber: set.setNumber,
+                targetReps: set.targetReps,
+                targetWeight: set.targetWeight,
+              })),
+            };
+          }),
+        };
+      }),
+    };
+  });
 }
 
 /**
  * Get the active routine for a user with all nested details
+ * Optimized to avoid N+1 queries
  */
 export async function getActiveRoutine(
   userId: string
@@ -224,45 +281,76 @@ export async function getActiveRoutine(
     .where(eq(workoutDays.routineId, routine.id))
     .orderBy(workoutDays.dayOrder);
 
-  // Get exercises and sets for each day
-  const daysWithDetails = await Promise.all(
-    days.map(async (day) => {
-      const exercises = await db
-        .select()
-        .from(dayExercises)
-        .where(eq(dayExercises.dayId, day.id))
-        .orderBy(dayExercises.exerciseOrder);
+  if (days.length === 0) {
+    return {
+      ...routine,
+      days: [],
+    };
+  }
 
-      const exercisesWithSets = await Promise.all(
-        exercises.map(async (exercise) => {
-          const sets = await db
-            .select()
-            .from(exerciseSets)
-            .where(eq(exerciseSets.exerciseId, exercise.id))
-            .orderBy(exerciseSets.setNumber);
+  const dayIds = days.map((d) => d.id);
 
-          return {
-            id: exercise.id,
-            exerciseName: exercise.exerciseName,
-            exerciseOrder: exercise.exerciseOrder,
-            sets: sets.map((set) => ({
-              id: set.id,
-              setNumber: set.setNumber,
-              targetReps: set.targetReps,
-              targetWeight: set.targetWeight,
-            })),
-          };
-        })
-      );
+  // Get all exercises for these days in one query
+  const allExercises = await db
+    .select()
+    .from(dayExercises)
+    .orderBy(dayExercises.exerciseOrder);
 
-      return {
-        id: day.id,
-        name: day.name,
-        dayOrder: day.dayOrder,
-        exercises: exercisesWithSets,
-      };
-    })
-  );
+  const exercisesMap = new Map<string, typeof allExercises>();
+  allExercises.forEach((exercise) => {
+    if (dayIds.includes(exercise.dayId)) {
+      if (!exercisesMap.has(exercise.dayId)) {
+        exercisesMap.set(exercise.dayId, []);
+      }
+      exercisesMap.get(exercise.dayId)!.push(exercise);
+    }
+  });
+
+  const exerciseIds = allExercises
+    .filter((e) => dayIds.includes(e.dayId))
+    .map((e) => e.id);
+
+  // Get all sets for these exercises in one query
+  const allSets =
+    exerciseIds.length > 0
+      ? await db.select().from(exerciseSets).orderBy(exerciseSets.setNumber)
+      : [];
+
+  const setsMap = new Map<string, typeof allSets>();
+  allSets.forEach((set) => {
+    if (exerciseIds.includes(set.exerciseId)) {
+      if (!setsMap.has(set.exerciseId)) {
+        setsMap.set(set.exerciseId, []);
+      }
+      setsMap.get(set.exerciseId)!.push(set);
+    }
+  });
+
+  // Build the nested structure
+  const daysWithDetails = days.map((day) => {
+    const exercises = exercisesMap.get(day.id) || [];
+
+    return {
+      id: day.id,
+      name: day.name,
+      dayOrder: day.dayOrder,
+      exercises: exercises.map((exercise) => {
+        const sets = setsMap.get(exercise.id) || [];
+
+        return {
+          id: exercise.id,
+          exerciseName: exercise.exerciseName,
+          exerciseOrder: exercise.exerciseOrder,
+          sets: sets.map((set) => ({
+            id: set.id,
+            setNumber: set.setNumber,
+            targetReps: set.targetReps,
+            targetWeight: set.targetWeight,
+          })),
+        };
+      }),
+    };
+  });
 
   return {
     id: routine.id,

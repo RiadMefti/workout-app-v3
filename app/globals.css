@@ -122,4 +122,29 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
   }
+
+  /* Mobile touch target improvements */
+  @media (max-width: 768px) {
+    /* Ensure all interactive elements meet minimum touch target size */
+    button, a, input[type="checkbox"], input[type="radio"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Add padding to small buttons to increase touch area */
+    button[class*="size-sm"] {
+      padding: 0.625rem 1rem;
+    }
+
+    /* Prevent horizontal overflow */
+    body {
+      overflow-x: hidden;
+    }
+
+    /* Ensure cards don't overflow on mobile */
+    [class*="Card"], [class*="card"] {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+  }
 }

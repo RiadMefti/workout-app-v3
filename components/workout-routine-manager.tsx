@@ -13,6 +13,8 @@ import {
 import { WorkoutRoutineCreator } from "./workout-routine-creator";
 import { WorkoutRoutineList } from "./workout-routine-list";
 import { AIRoutineInputForm } from "./ai-routine-input-form";
+import { useRoutineGeneration } from "@/hooks/useRoutineGeneration";
+import { toast } from "@/lib/toast";
 
 interface RoutineSet {
   id: string;
@@ -52,10 +54,18 @@ interface WorkoutRoutineManagerProps {
 export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createMode, setCreateMode] = useState<"" | "ai" | "custom">("");
-  const [generatedRoutine, setGeneratedRoutine] = useState<any>(null);
   const [routines, setRoutines] = useState<WorkoutRoutine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Use the custom hook for routine generation
+  const {
+    generatedRoutine,
+    isGenerating,
+    error: generationError,
+    generateRoutine,
+    reset: resetGeneration,
+  } = useRoutineGeneration();
 
   // Fetch routines on mount
   const fetchRoutines = async () => {
@@ -120,7 +130,7 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
       // Close create form and reset
       setShowCreateForm(false);
       setCreateMode("");
-      setGeneratedRoutine(null);
+      resetGeneration();
     } catch (err) {
       console.error("Error creating routine:", err);
       throw err; // Re-throw to let the creator component handle it
@@ -144,11 +154,12 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
         throw new Error("Failed to set active routine");
       }
 
+      toast.success("Active routine updated");
       // Refresh routines list
       await fetchRoutines();
     } catch (err) {
       console.error("Error setting active routine:", err);
-      alert("Failed to set active routine. Please try again.");
+      toast.error("Failed to set active routine. Please try again.");
     }
   };
 
@@ -158,24 +169,15 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
     preferences: string;
     routineName: string;
   }) => {
-    const response = await fetch("/api/routines/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(input),
-    });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Unknown error" }));
-      throw new Error(errorData.error || "Failed to generate routine");
+    try {
+      await generateRoutine(input);
+      setCreateMode("ai"); // Show the editable preview
+    } catch (err) {
+      // Error is handled by the hook and stored in generationError
+      toast.error(
+        generationError || "Failed to generate routine. Please try again."
+      );
     }
-
-    const data = await response.json();
-    setGeneratedRoutine(data.routine);
-    setCreateMode("ai"); // Show the editable preview
   };
 
   if (isLoading) {
@@ -271,7 +273,7 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
               onCancel={() => {
                 setShowCreateForm(false);
                 setCreateMode("");
-                setGeneratedRoutine(null);
+                resetGeneration();
               }}
             />
           )}
@@ -283,7 +285,7 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
               onCancel={() => {
                 setShowCreateForm(false);
                 setCreateMode("");
-                setGeneratedRoutine(null);
+                resetGeneration();
               }}
             />
           )}

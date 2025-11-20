@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveRoutine } from "@/db/services/routines";
 import { getLastCompletedWorkoutForRoutine } from "@/db/services/workouts";
+import { requireAuth, verifyOwnership } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate user
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
     if (!userId) {
       return NextResponse.json(
-        { error: "userId is required" },
+        { success: false, error: "userId is required" },
         { status: 400 }
       );
     }
+
+    // Verify ownership
+    const ownershipError = verifyOwnership(auth.user.id, userId);
+    if (ownershipError) return ownershipError;
 
     // Get the active routine
     const activeRoutine = await getActiveRoutine(userId);
@@ -23,7 +32,7 @@ export async function GET(request: NextRequest) {
       activeRoutine.days.length === 0
     ) {
       return NextResponse.json(
-        { error: "No active routine found" },
+        { success: false, error: "No active routine found" },
         { status: 404 }
       );
     }
@@ -55,12 +64,13 @@ export async function GET(request: NextRequest) {
 
     if (!nextDay) {
       return NextResponse.json(
-        { error: "Could not determine next workout" },
+        { success: false, error: "Could not determine next workout" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
+      success: true,
       routine: {
         id: activeRoutine.id,
         name: activeRoutine.name,
@@ -75,7 +85,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error getting next workout:", error);
     return NextResponse.json(
-      { error: "Failed to get next workout" },
+      { success: false, error: "Failed to get next workout" },
       { status: 500 }
     );
   }

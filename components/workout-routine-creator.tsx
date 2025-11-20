@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/lib/toast";
 
 interface SetInput {
   setNumber: number;
@@ -153,32 +154,32 @@ export function WorkoutRoutineCreator({
 
   const handleSubmit = async () => {
     if (!routineName.trim()) {
-      alert("Please enter a routine name");
+      toast.error("Please enter a routine name");
       return;
     }
 
     if (days.length === 0) {
-      alert("Please add at least one day");
+      toast.error("Please add at least one day");
       return;
     }
 
     // Validate all days have names and exercises
     for (const day of days) {
       if (!day.name.trim()) {
-        alert("Please name all workout days");
+        toast.error("Please name all workout days");
         return;
       }
       if (day.exercises.length === 0) {
-        alert(`Please add exercises to ${day.name}`);
+        toast.error(`Please add exercises to ${day.name}`);
         return;
       }
       for (const exercise of day.exercises) {
         if (!exercise.exerciseName.trim()) {
-          alert(`Please name all exercises in ${day.name}`);
+          toast.error(`Please name all exercises in ${day.name}`);
           return;
         }
         if (exercise.sets.length === 0) {
-          alert(`Please add sets to ${exercise.exerciseName}`);
+          toast.error(`Please add sets to ${exercise.exerciseName}`);
           return;
         }
       }
@@ -190,6 +191,7 @@ export function WorkoutRoutineCreator({
         name: routineName,
         days,
       });
+      toast.success("Routine created successfully");
       // Reset form
       setRoutineName("");
       setDays([
@@ -201,7 +203,7 @@ export function WorkoutRoutineCreator({
       ]);
     } catch (error) {
       console.error("Failed to create routine:", error);
-      alert("Failed to create routine. Please try again.");
+      toast.error("Failed to create routine. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -390,7 +392,6 @@ export function WorkoutRoutineCreator({
         <Button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
         >
           {isSubmitting ? "Creating..." : "Create Routine"}
         </Button>

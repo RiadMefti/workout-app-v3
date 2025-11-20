@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/lib/toast";
 
 interface AIRoutineInputFormProps {
   onGenerate: (input: {
@@ -37,12 +38,12 @@ export function AIRoutineInputForm({
 
   const handleGenerate = async () => {
     if (!experienceLevel || !daysPerWeek) {
-      alert("Please select your experience level and days per week");
+      toast.error("Please select your experience level and days per week");
       return;
     }
 
     if (!routineName.trim()) {
-      alert("Please enter a routine name");
+      toast.error("Please enter a routine name");
       return;
     }
 
@@ -56,7 +57,7 @@ export function AIRoutineInputForm({
       });
     } catch (error) {
       console.error("Failed to generate routine:", error);
-      alert("Failed to generate routine. Please try again.");
+      toast.error("Failed to generate routine. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -66,8 +67,8 @@ export function AIRoutineInputForm({
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
             <CardTitle className="text-xl">AI Routine Generator</CardTitle>
@@ -172,7 +173,6 @@ export function AIRoutineInputForm({
           <Button
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
           >
             {isGenerating ? (
               <>

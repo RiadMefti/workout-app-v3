@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/lib/toast";
 
 interface SetInput {
   setNumber: number;
@@ -238,22 +239,22 @@ export function WorkoutRecorder({
   const handleSubmit = async () => {
     // Validation
     if (!workoutName.trim()) {
-      alert("Please enter a workout name");
+      toast.error("Please enter a workout name");
       return;
     }
 
     if (exercises.length === 0) {
-      alert("Please add at least one exercise");
+      toast.error("Please add at least one exercise");
       return;
     }
 
     for (let i = 0; i < exercises.length; i++) {
       if (!exercises[i].exerciseName.trim()) {
-        alert(`Please enter a name for exercise ${i + 1}`);
+        toast.error(`Please enter a name for exercise ${i + 1}`);
         return;
       }
       if (exercises[i].sets.length === 0) {
-        alert(`Please add at least one set for ${exercises[i].exerciseName}`);
+        toast.error(`Please add at least one set for ${exercises[i].exerciseName}`);
         return;
       }
     }
@@ -284,14 +285,14 @@ export function WorkoutRecorder({
       setExercises([]);
       setSelectedDayId("");
 
+      toast.success("Workout recorded successfully!");
+
       if (onComplete) {
         onComplete();
-      } else {
-        alert("Workout recorded successfully! 🎉");
       }
     } catch (error) {
       console.error("Error recording workout:", error);
-      alert("Failed to record workout. Please try again.");
+      toast.error("Failed to record workout. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -549,7 +550,6 @@ export function WorkoutRecorder({
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

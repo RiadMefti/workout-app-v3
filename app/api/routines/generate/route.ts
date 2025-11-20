@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { requireAuth } from "@/lib/auth";
+import {
+  getAIProvider,
+  DEFAULT_AI_MODEL,
+  AI_SETTINGS,
+} from "@/lib/ai-config";
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const { routineName, experienceLevel, daysPerWeek, preferences } = body;
 
     if (!routineName || !experienceLevel || !daysPerWeek) {
       return NextResponse.json(
-        { error: "routineName, experienceLevel, and daysPerWeek are required" },
+        {
+          success: false,
+          error: "routineName, experienceLevel, and daysPerWeek are required",
+        },
         { status: 400 }
       );
     }
 
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) {
-      return NextResponse.json(
-        { error: "GITHUB_TOKEN not configured" },
-        { status: 500 }
-      );
-    }
-
-    // Configure GitHub Models provider (same as chat route)
-    const github = createOpenAICompatible({
-      name: "github-models",
-      baseURL: "https://models.github.ai/inference",
-      apiKey: token,
-    });
+    const aiProvider = getAIProvider();
 
     // Build the prompt for the LLM
     const prompt = `You are a professional fitness coach. Generate a detailed workout routine with the following requirements:
@@ -78,9 +77,9 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no code 
 }`;
 
     const { text } = await generateText({
-      model: github("openai/gpt-4.1"),
+      model: aiProvider(DEFAULT_AI_MODEL),
       prompt,
-      temperature: 0.7,
+      temperature: AI_SETTINGS.routineGeneration.temperature,
     });
 
     // Parse the LLM response
@@ -103,16 +102,20 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no code 
     // Validate the structure
     if (!routine.days || !Array.isArray(routine.days)) {
       return NextResponse.json(
-        { error: "Invalid routine structure" },
+        { success: false, error: "Invalid routine structure" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ routine });
+    return NextResponse.json({ success: true, routine });
   } catch (error) {
     console.error("Error generating routine:", error);
     return NextResponse.json(
-      { error: "Failed to generate routine" },
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to generate routine",
+      },
       { status: 500 }
     );
   }

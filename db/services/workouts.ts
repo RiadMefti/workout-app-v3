@@ -148,6 +148,7 @@ export async function getWorkoutHistory(
 
 /**
  * Get full details of a specific completed workout
+ * Optimized to avoid N+1 queries
  */
 export async function getWorkoutDetails(
   userId: string,
@@ -174,28 +175,48 @@ export async function getWorkoutDetails(
     .where(eq(completedExercises.workoutId, workout.id))
     .orderBy(completedExercises.exerciseOrder);
 
-  // Get sets for each exercise
-  const exercisesWithSets = await Promise.all(
-    exercises.map(async (exercise) => {
-      const sets = await db
-        .select()
-        .from(completedSets)
-        .where(eq(completedSets.exerciseId, exercise.id))
-        .orderBy(completedSets.setNumber);
+  if (exercises.length === 0) {
+    return {
+      ...workout,
+      exercises: [],
+    };
+  }
 
-      return {
-        id: exercise.id,
-        exerciseName: exercise.exerciseName,
-        exerciseOrder: exercise.exerciseOrder,
-        sets: sets.map((set) => ({
-          id: set.id,
-          setNumber: set.setNumber,
-          reps: set.reps,
-          weight: set.weight,
-        })),
-      };
-    })
-  );
+  const exerciseIds = exercises.map((e) => e.id);
+
+  // Get all sets for these exercises in one query
+  const allSets = await db
+    .select()
+    .from(completedSets)
+    .orderBy(completedSets.setNumber);
+
+  // Group sets by exercise
+  const setsMap = new Map<string, typeof allSets>();
+  allSets.forEach((set) => {
+    if (exerciseIds.includes(set.exerciseId)) {
+      if (!setsMap.has(set.exerciseId)) {
+        setsMap.set(set.exerciseId, []);
+      }
+      setsMap.get(set.exerciseId)!.push(set);
+    }
+  });
+
+  // Build the nested structure
+  const exercisesWithSets = exercises.map((exercise) => {
+    const sets = setsMap.get(exercise.id) || [];
+
+    return {
+      id: exercise.id,
+      exerciseName: exercise.exerciseName,
+      exerciseOrder: exercise.exerciseOrder,
+      sets: sets.map((set) => ({
+        id: set.id,
+        setNumber: set.setNumber,
+        reps: set.reps,
+        weight: set.weight,
+      })),
+    };
+  });
 
   return {
     id: workout.id,

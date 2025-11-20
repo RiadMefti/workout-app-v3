@@ -1,5 +1,10 @@
 import { ChatInterface } from "@/components/chat-interface";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export default function HomePage() {
-  return <ChatInterface />;
+  return (
+    <ErrorBoundary>
+      <ChatInterface />
+    </ErrorBoundary>
+  );
 }

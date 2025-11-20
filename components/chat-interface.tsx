@@ -16,6 +16,8 @@ import { WorkoutRoutineManager } from "./workout-routine-manager";
 import { AIRoutineInputForm } from "./ai-routine-input-form";
 import { WorkoutRoutineCreator } from "./workout-routine-creator";
 import { WorkoutRecorder } from "./workout-recorder";
+import { useRoutineGeneration } from "@/hooks/useRoutineGeneration";
+import { toast } from "@/lib/toast";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -54,24 +56,16 @@ export function ChatInterface() {
   const [showRoutineManager, setShowRoutineManager] = useState(false);
   const [showAIRoutineForm, setShowAIRoutineForm] = useState(false);
   const [showWorkoutRecorder, setShowWorkoutRecorder] = useState(false);
-  const [isGeneratingRoutine, setIsGeneratingRoutine] = useState(false);
-  const [generatedRoutine, setGeneratedRoutine] = useState<{
-    name: string;
-    days: Array<{
-      name: string;
-      dayOrder: number;
-      exercises: Array<{
-        exerciseName: string;
-        exerciseOrder: number;
-        sets: Array<{
-          setNumber: number;
-          targetReps: number;
-          targetWeight: number;
-        }>;
-      }>;
-    }>;
-  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Use the custom hook for routine generation
+  const {
+    generatedRoutine,
+    isGenerating: isGeneratingRoutine,
+    error: generationError,
+    generateRoutine,
+    reset: resetGeneration,
+  } = useRoutineGeneration();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -249,55 +243,18 @@ export function ChatInterface() {
                   user?.id && (
                     <AIRoutineInputForm
                       onGenerate={async (formData) => {
-                        setIsGeneratingRoutine(true);
                         try {
-                          const response = await fetch(
-                            "/api/routines/generate",
-                            {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify(formData),
-                            }
-                          );
-
-                          if (!response.ok) {
-                            const errorData = await response
-                              .json()
-                              .catch(() => ({ error: "Unknown error" }));
-                            throw new Error(
-                              errorData.error || "Failed to generate routine"
-                            );
-                          }
-
-                          const data = await response.json();
-                          // Convert null targetWeight to 0 for the form
-                          const routineWithDefaults = {
-                            ...data.routine,
-                            days: data.routine.days.map((day: any) => ({
-                              ...day,
-                              exercises: day.exercises.map((exercise: any) => ({
-                                ...exercise,
-                                sets: exercise.sets.map((set: any) => ({
-                                  ...set,
-                                  targetWeight: set.targetWeight ?? 0,
-                                })),
-                              })),
-                            })),
-                          };
-                          setGeneratedRoutine(routineWithDefaults);
+                          await generateRoutine(formData);
                         } catch (error) {
-                          console.error("Error generating routine:", error);
-                          alert(
-                            error instanceof Error
-                              ? error.message
-                              : "Failed to generate routine"
+                          toast.error(
+                            generationError ||
+                              "Failed to generate routine. Please try again."
                           );
-                        } finally {
-                          setIsGeneratingRoutine(false);
                         }
                       }}
                       onCancel={() => {
                         setShowAIRoutineForm(false);
+                        resetGeneration();
                       }}
                     />
                   )}
@@ -324,16 +281,16 @@ export function ChatInterface() {
 
                           // Reset states
                           setShowAIRoutineForm(false);
-                          setGeneratedRoutine(null);
-                          alert("Routine created successfully!");
+                          resetGeneration();
+                          toast.success("Routine created successfully!");
                         } catch (error) {
                           console.error("Error creating routine:", error);
-                          alert("Failed to create routine");
+                          toast.error("Failed to create routine");
                         }
                       }}
                       onCancel={() => {
                         setShowAIRoutineForm(false);
-                        setGeneratedRoutine(null);
+                        resetGeneration();
                       }}
                     />
                   )}

@@ -8,7 +8,6 @@ interface QuickAction {
   title: string;
   description: string;
   icon: React.ElementType;
-  gradient: string;
   prompt: string;
 }
 
@@ -18,7 +17,6 @@ const actions: QuickAction[] = [
     title: "Record a Workout",
     description: "Log your sets, reps, and exercises",
     icon: Dumbbell,
-    gradient: "from-blue-500 to-cyan-500",
     prompt: "I want to record a workout",
   },
   {
@@ -26,7 +24,6 @@ const actions: QuickAction[] = [
     title: "Manage Routines",
     description: "Create and view your workout routines",
     icon: ListChecks,
-    gradient: "from-purple-500 to-pink-500",
     prompt: "I want to manage my workout routines",
   },
   {
@@ -34,7 +31,6 @@ const actions: QuickAction[] = [
     title: "Generate Plan (AI)",
     description: "Let AI create a personalized program",
     icon: Calendar,
-    gradient: "from-indigo-500 to-violet-500",
     prompt: "I want to create a new workout plan",
   },
   {
@@ -42,7 +38,6 @@ const actions: QuickAction[] = [
     title: "Workout History",
     description: "View past workouts and progress",
     icon: History,
-    gradient: "from-orange-500 to-red-500",
     prompt: "Show me my workout history",
   },
 ];
@@ -61,20 +56,15 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
             <Card
               key={action.id}
               onClick={() => onActionClick(action.prompt)}
-              className="group relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border-border/50 bg-card/50 backdrop-blur-sm"
+              className="group relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:border-primary/50"
             >
-              {/* Gradient Background on Hover */}
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
-              />
-
               {/* Content */}
               <div className="relative p-5 sm:p-6 flex items-start gap-4">
                 {/* Icon Container */}
                 <div
-                  className={`shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                  className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
                 >
-                  <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                  <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />
                 </div>
 
                 {/* Text Content */}
