@@ -1,6 +1,6 @@
 "use client";
 
-import { Dumbbell, Calendar, History, Eye } from "lucide-react";
+import { Dumbbell, Calendar, History, ListChecks } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface QuickAction {
@@ -22,11 +22,19 @@ const actions: QuickAction[] = [
     prompt: "I want to record a workout",
   },
   {
-    id: "create-plan",
-    title: "Create Workout Plan",
-    description: "Generate a personalized program",
-    icon: Calendar,
+    id: "manage-routines",
+    title: "Manage Routines",
+    description: "Create and view your workout routines",
+    icon: ListChecks,
     gradient: "from-purple-500 to-pink-500",
+    prompt: "I want to manage my workout routines",
+  },
+  {
+    id: "create-plan",
+    title: "Generate Plan (AI)",
+    description: "Let AI create a personalized program",
+    icon: Calendar,
+    gradient: "from-indigo-500 to-violet-500",
     prompt: "I want to create a new workout plan",
   },
   {
@@ -36,14 +44,6 @@ const actions: QuickAction[] = [
     icon: History,
     gradient: "from-orange-500 to-red-500",
     prompt: "Show me my workout history",
-  },
-  {
-    id: "current-routine",
-    title: "Current Routine",
-    description: "Check your active workout plan",
-    icon: Eye,
-    gradient: "from-green-500 to-emerald-500",
-    prompt: "Show me my current workout routine",
   },
 ];
 
