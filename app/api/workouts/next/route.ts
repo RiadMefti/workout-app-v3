@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
     // Get the active routine
     const activeRoutine = await getActiveRoutine(userId);
 
-    if (!activeRoutine || !activeRoutine.days || activeRoutine.days.length === 0) {
+    if (
+      !activeRoutine ||
+      !activeRoutine.days ||
+      activeRoutine.days.length === 0
+    ) {
       return NextResponse.json(
         { error: "No active routine found" },
         { status: 404 }

@@ -195,9 +195,7 @@ export function WorkoutRecorder({
   const removeExercise = (index: number) => {
     const updated = exercises.filter((_, i) => i !== index);
     // Re-order exercises
-    setExercises(
-      updated.map((ex, idx) => ({ ...ex, exerciseOrder: idx + 1 }))
-    );
+    setExercises(updated.map((ex, idx) => ({ ...ex, exerciseOrder: idx + 1 })));
   };
 
   const updateExerciseName = (index: number, name: string) => {
@@ -327,7 +325,9 @@ export function WorkoutRecorder({
           <h2 className="text-2xl md:text-3xl font-bold">Record Workout</h2>
           {nextWorkout && exercises.length > 0 && (
             <p className="text-sm text-muted-foreground mt-1">
-              Next workout: <span className="font-medium">{nextWorkout.nextDay.name}</span> from {nextWorkout.routine.name}
+              Next workout:{" "}
+              <span className="font-medium">{nextWorkout.nextDay.name}</span>{" "}
+              from {nextWorkout.routine.name}
             </p>
           )}
         </div>
@@ -339,46 +339,47 @@ export function WorkoutRecorder({
       </div>
 
       {/* Workout Selection - Only show if no exercises loaded yet */}
-      {(activeRoutine || nextWorkout) && (exercises.length === 0 || showDaySelector) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Choose Workout</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>
-                Select from {nextWorkout?.routine.name || activeRoutine?.name}
-              </Label>
-              <Select value={selectedDayId} onValueChange={handleDaySelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a workout day..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeRoutine?.days.map((day) => (
-                    <SelectItem key={day.id} value={day.id}>
-                      {day.name} ({day.exercises.length} exercises)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {(activeRoutine || nextWorkout) &&
+        (exercises.length === 0 || showDaySelector) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Choose Workout</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>
+                  Select from {nextWorkout?.routine.name || activeRoutine?.name}
+                </Label>
+                <Select value={selectedDayId} onValueChange={handleDaySelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a workout day..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeRoutine?.days.map((day) => (
+                      <SelectItem key={day.id} value={day.id}>
+                        {day.name} ({day.exercises.length} exercises)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex-1 border-t" />
-              <span className="text-sm text-muted-foreground">or</span>
-              <div className="flex-1 border-t" />
-            </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 border-t" />
+                <span className="text-sm text-muted-foreground">or</span>
+                <div className="flex-1 border-t" />
+              </div>
 
-            <Button
-              onClick={startCustomWorkout}
-              variant="outline"
-              className="w-full"
-            >
-              Start Custom Workout
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+              <Button
+                onClick={startCustomWorkout}
+                variant="outline"
+                className="w-full"
+              >
+                Start Custom Workout
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
       {/* Workout Form */}
       {exercises.length > 0 && (
@@ -393,7 +394,8 @@ export function WorkoutRecorder({
                       Recording: {workoutName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
+                      {exercises.length} exercise
+                      {exercises.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                   {(nextWorkout || activeRoutine) && (
