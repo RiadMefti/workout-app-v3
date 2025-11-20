@@ -19,9 +19,12 @@ export async function GET(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
+    const userIdParam = searchParams.get("userId");
+    const activeOnlyParam = searchParams.get("activeOnly");
+
     const queryParams = {
-      userId: searchParams.get("userId"),
-      activeOnly: searchParams.get("activeOnly"),
+      userId: userIdParam,
+      ...(activeOnlyParam !== null && { activeOnly: activeOnlyParam }),
     };
 
     // Validate query params
