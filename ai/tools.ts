@@ -158,65 +158,11 @@ export const generateWorkoutPlan = createTool({
   },
 });
 
-export const generateWorkoutRoutine = createTool({
-  description:
-    "Generate a complete workout routine structure that can be saved to the database. This should return a detailed routine with days, exercises, and sets/reps/weight for each exercise. The routine should match the user's experience level, training frequency, and preferences.",
-  inputSchema: z.object({
-    routineName: z.string().describe("Name for the workout routine"),
-    experienceLevel: z
-      .enum(["beginner", "intermediate", "advanced"])
-      .describe("User's training experience level"),
-    daysPerWeek: z
-      .number()
-      .min(3)
-      .max(6)
-      .describe("Number of training days per week"),
-    preferences: z
-      .string()
-      .optional()
-      .describe("User's goals, injuries, equipment limitations, or preferences"),
-  }),
-  execute: async function ({
-    routineName,
-    experienceLevel,
-    daysPerWeek,
-    preferences,
-  }) {
-    // This will be filled by the LLM with the actual routine data
-    // The LLM needs to return the routine in this exact format
-    return {
-      type: "workout-routine-generated",
-      routineName,
-      experienceLevel,
-      daysPerWeek,
-      preferences,
-      // The LLM will populate this structure
-      routine: {
-        name: routineName,
-        days: [] as Array<{
-          name: string;
-          dayOrder: number;
-          exercises: Array<{
-            exerciseName: string;
-            exerciseOrder: number;
-            sets: Array<{
-              setNumber: number;
-              targetReps: number;
-              targetWeight: number;
-            }>;
-          }>;
-        }>,
-      },
-    };
-  },
-});
-
 export const tools = {
   showWorkoutPlanQuestions,
   showWorkoutDaysSelector,
   searchExercises,
   generateWorkoutPlan,
-  generateWorkoutRoutine,
 };
 
 // Export types for each tool
@@ -286,43 +232,10 @@ export type GenerateWorkoutPlanTool = {
   };
 };
 
-export type GenerateWorkoutRoutineTool = {
-  input: {
-    routineName: string;
-    experienceLevel: "beginner" | "intermediate" | "advanced";
-    daysPerWeek: number;
-    preferences?: string;
-  };
-  output: {
-    type: "workout-routine-generated";
-    routineName: string;
-    experienceLevel: string;
-    daysPerWeek: number;
-    preferences?: string;
-    routine: {
-      name: string;
-      days: Array<{
-        name: string;
-        dayOrder: number;
-        exercises: Array<{
-          exerciseName: string;
-          exerciseOrder: number;
-          sets: Array<{
-            setNumber: number;
-            targetReps: number;
-            targetWeight: number;
-          }>;
-        }>;
-      }>;
-    };
-  };
-};
-
 // Combine all tool types for useChat
 export type AppTools = {
   showWorkoutPlanQuestions: ShowWorkoutPlanQuestionsTool;
   showWorkoutDaysSelector: ShowWorkoutDaysSelectorTool;
   searchExercises: SearchExercisesTool;
   generateWorkoutPlan: GenerateWorkoutPlanTool;
-  generateWorkoutRoutine: GenerateWorkoutRoutineTool;
 };

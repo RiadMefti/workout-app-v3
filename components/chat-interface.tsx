@@ -13,6 +13,8 @@ import { WorkoutPlanDisplay } from "./workout-plan-display";
 import { QuickActions } from "./quick-actions";
 import { WorkoutHistoryCalendar } from "./workout-history-calendar";
 import { WorkoutRoutineManager } from "./workout-routine-manager";
+import { AIRoutineInputForm } from "./ai-routine-input-form";
+import { WorkoutRoutineCreator } from "./workout-routine-creator";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -49,6 +51,24 @@ export function ChatInterface() {
   const [inputValue, setInputValue] = useState("");
   const [showWorkoutHistory, setShowWorkoutHistory] = useState(false);
   const [showRoutineManager, setShowRoutineManager] = useState(false);
+  const [showAIRoutineForm, setShowAIRoutineForm] = useState(false);
+  const [isGeneratingRoutine, setIsGeneratingRoutine] = useState(false);
+  const [generatedRoutine, setGeneratedRoutine] = useState<{
+    name: string;
+    days: Array<{
+      name: string;
+      dayOrder: number;
+      exercises: Array<{
+        exerciseName: string;
+        exerciseOrder: number;
+        sets: Array<{
+          setNumber: number;
+          targetReps: number;
+          targetWeight: number;
+        }>;
+      }>;
+    }>;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -155,12 +175,14 @@ export function ChatInterface() {
                             setShowWorkoutHistory(true);
                             return; // Don't send message to LLM
                           }
-                          // Check if it's the manage routines or create plan action
-                          if (
-                            prompt.toLowerCase().includes("manage my workout routines") ||
-                            prompt.toLowerCase().includes("create a new workout plan")
-                          ) {
+                          // Check if it's the manage routines action
+                          if (prompt.toLowerCase().includes("manage my workout routines")) {
                             setShowRoutineManager(true);
+                            return; // Don't send message to LLM
+                          }
+                          // Check if it's the create plan (AI) action
+                          if (prompt.toLowerCase().includes("create a new workout plan")) {
+                            setShowAIRoutineForm(true);
                             return; // Don't send message to LLM
                           }
                           // For other actions, send to LLM
@@ -184,6 +206,119 @@ export function ChatInterface() {
                  showRoutineManager &&
                  user?.id && (
                   <WorkoutRoutineManager userId={user.id} />
+                )}
+
+                {/* Show AI Routine Form when Generate Plan is clicked */}
+                {message.id === "welcome" &&
+                 message.role === "assistant" &&
+                 showAIRoutineForm &&
+                 !isGeneratingRoutine &&
+                 !generatedRoutine &&
+                 user?.id && (
+                  <AIRoutineInputForm
+                    onGenerate={async (formData) => {
+                      setIsGeneratingRoutine(true);
+                      try {
+                        const response = await fetch("/api/routines/generate", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(formData),
+                        });
+
+                        if (!response.ok) {
+                          const errorData = await response
+                            .json()
+                            .catch(() => ({ error: "Unknown error" }));
+                          throw new Error(
+                            errorData.error || "Failed to generate routine"
+                          );
+                        }
+
+                        const data = await response.json();
+                        // Convert null targetWeight to 0 for the form
+                        const routineWithDefaults = {
+                          ...data.routine,
+                          days: data.routine.days.map((day: any) => ({
+                            ...day,
+                            exercises: day.exercises.map((exercise: any) => ({
+                              ...exercise,
+                              sets: exercise.sets.map((set: any) => ({
+                                ...set,
+                                targetWeight: set.targetWeight ?? 0,
+                              })),
+                            })),
+                          })),
+                        };
+                        setGeneratedRoutine(routineWithDefaults);
+                      } catch (error) {
+                        console.error("Error generating routine:", error);
+                        alert(
+                          error instanceof Error
+                            ? error.message
+                            : "Failed to generate routine"
+                        );
+                      } finally {
+                        setIsGeneratingRoutine(false);
+                      }
+                    }}
+                    onCancel={() => {
+                      setShowAIRoutineForm(false);
+                    }}
+                  />
+                )}
+
+                {/* Show generated routine in editable form */}
+                {message.id === "welcome" &&
+                 message.role === "assistant" &&
+                 showAIRoutineForm &&
+                 generatedRoutine &&
+                 user?.id && (
+                  <WorkoutRoutineCreator
+                    initialRoutine={generatedRoutine}
+                    onCreateRoutine={async (routine) => {
+                      try {
+                        const response = await fetch("/api/routines", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(routine),
+                        });
+
+                        if (!response.ok) {
+                          throw new Error("Failed to create routine");
+                        }
+
+                        // Reset states
+                        setShowAIRoutineForm(false);
+                        setGeneratedRoutine(null);
+                        alert("Routine created successfully!");
+                      } catch (error) {
+                        console.error("Error creating routine:", error);
+                        alert("Failed to create routine");
+                      }
+                    }}
+                    onCancel={() => {
+                      setShowAIRoutineForm(false);
+                      setGeneratedRoutine(null);
+                    }}
+                  />
+                )}
+
+                {/* Show loading state while generating */}
+                {message.id === "welcome" &&
+                 message.role === "assistant" &&
+                 isGeneratingRoutine && (
+                  <div className="w-full max-w-2xl mx-auto p-6 border rounded-lg bg-card">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="flex gap-1">
+                        <div className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                        <div className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                        <div className="w-3 h-3 bg-primary rounded-full animate-bounce" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Generating your personalized workout routine...
+                      </p>
+                    </div>
+                  </div>
                 )}
 
                 {/* Tool invocations */}

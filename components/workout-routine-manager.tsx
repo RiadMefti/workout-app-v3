@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Sparkles, Edit3 } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WorkoutRoutineCreator } from "./workout-routine-creator";
 import { WorkoutRoutineList } from "./workout-routine-list";
 import { AIRoutineInputForm } from "./ai-routine-input-form";
@@ -45,18 +50,14 @@ interface WorkoutRoutineManagerProps {
 }
 
 export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
-  const [activeTab, setActiveTab] = useState<"view" | "create">("view");
-  const [createMode, setCreateMode] = useState<"choice" | "ai" | "custom">("choice");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createMode, setCreateMode] = useState<"" | "ai" | "custom">("");
   const [generatedRoutine, setGeneratedRoutine] = useState<any>(null);
   const [routines, setRoutines] = useState<WorkoutRoutine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch routines on mount
-  useEffect(() => {
-    fetchRoutines();
-  }, [userId]);
-
   const fetchRoutines = async () => {
     setIsLoading(true);
     setError(null);
@@ -74,6 +75,10 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRoutines();
+  }, [userId]);
 
   const handleCreateRoutine = async (routine: {
     name: string;
@@ -112,8 +117,10 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
       // Refresh routines list
       await fetchRoutines();
 
-      // Switch to view tab to see the new routine
-      setActiveTab("view");
+      // Close create form and reset
+      setShowCreateForm(false);
+      setCreateMode("");
+      setGeneratedRoutine(null);
     } catch (err) {
       console.error("Error creating routine:", err);
       throw err; // Re-throw to let the creator component handle it
@@ -190,84 +197,61 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => {
-          setActiveTab(v as "view" | "create");
-          // Reset create mode when switching tabs
-          if (v === "create") {
-            setCreateMode("choice");
-            setGeneratedRoutine(null);
-          }
-        }}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold">Workout Routines</h2>
-          <TabsList className="grid w-[300px] grid-cols-2">
-            <TabsTrigger value="view">My Routines</TabsTrigger>
-            <TabsTrigger value="create" className="flex items-center gap-1">
-              <Plus className="h-4 w-4" />
-              Create New
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold">Workout Routines</h2>
+        {!showCreateForm && (
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create New Workout
+          </Button>
+        )}
+      </div>
 
-        <TabsContent value="view" className="mt-0">
-          <WorkoutRoutineList
-            routines={routines}
-            onSetActive={handleSetActive}
-          />
-        </TabsContent>
-
-        <TabsContent value="create" className="mt-0">
-          {createMode === "choice" && (
-            <div className="max-w-2xl mx-auto space-y-4">
-              <h3 className="text-lg font-semibold text-center mb-6">
-                How would you like to create your routine?
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* AI Generated Option */}
-                <Card
-                  onClick={() => setCreateMode("ai")}
-                  className="group relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border-2 hover:border-purple-500"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-                  <div className="relative p-6 flex flex-col items-center text-center space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                      <Sparkles className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-lg mb-2">AI Generated</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Let AI create a personalized routine based on your goals and
-                        experience
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Custom Option */}
-                <Card
-                  onClick={() => setCreateMode("custom")}
-                  className="group relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border-2 hover:border-blue-500"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-                  <div className="relative p-6 flex flex-col items-center text-center space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                      <Edit3 className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-lg mb-2">Custom</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Build your own routine from scratch with full control over
-                        every detail
-                      </p>
-                    </div>
-                  </div>
-                </Card>
+      {!showCreateForm ? (
+        <WorkoutRoutineList routines={routines} onSetActive={handleSetActive} />
+      ) : (
+        <div className="space-y-6">
+          {!createMode && (
+            <div className="max-w-2xl mx-auto space-y-4 p-6 border rounded-lg bg-card">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  How would you like to create your routine?
+                </label>
+                <Select value={createMode} onValueChange={(value: "ai" | "custom") => setCreateMode(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a creation method..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ai">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">AI Generated</span>
+                        <span className="text-xs text-muted-foreground">
+                          Let AI create a personalized routine
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="custom">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">Custom</span>
+                        <span className="text-xs text-muted-foreground">
+                          Build your own from scratch
+                        </span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex justify-center pt-4">
-                <Button onClick={() => setActiveTab("view")} variant="ghost">
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setCreateMode("");
+                  }}
+                  variant="ghost"
+                >
                   Cancel
                 </Button>
               </div>
@@ -278,7 +262,8 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
             <AIRoutineInputForm
               onGenerate={handleGenerateRoutine}
               onCancel={() => {
-                setCreateMode("choice");
+                setShowCreateForm(false);
+                setCreateMode("");
                 setGeneratedRoutine(null);
               }}
             />
@@ -289,7 +274,8 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
               initialRoutine={generatedRoutine}
               onCreateRoutine={handleCreateRoutine}
               onCancel={() => {
-                setCreateMode("choice");
+                setShowCreateForm(false);
+                setCreateMode("");
                 setGeneratedRoutine(null);
               }}
             />
@@ -298,11 +284,14 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
           {createMode === "custom" && (
             <WorkoutRoutineCreator
               onCreateRoutine={handleCreateRoutine}
-              onCancel={() => setCreateMode("choice")}
+              onCancel={() => {
+                setShowCreateForm(false);
+                setCreateMode("");
+              }}
             />
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 }
