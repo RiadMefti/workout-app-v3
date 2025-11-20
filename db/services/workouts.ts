@@ -208,3 +208,46 @@ export async function getWorkoutDetails(
     exercises: exercisesWithSets,
   };
 }
+
+/**
+ * Get the last completed workout for a specific routine
+ */
+export async function getLastCompletedWorkoutForRoutine(
+  userId: string,
+  routineId: string
+): Promise<{ dayId: string | null; dayOrder: number | null } | null> {
+  const [lastWorkout] = await db
+    .select({
+      dayId: completedWorkouts.dayId,
+    })
+    .from(completedWorkouts)
+    .where(
+      and(
+        eq(completedWorkouts.userId, userId),
+        eq(completedWorkouts.routineId, routineId)
+      )
+    )
+    .orderBy(desc(completedWorkouts.completedAt))
+    .limit(1);
+
+  if (!lastWorkout || !lastWorkout.dayId) {
+    return null;
+  }
+
+  // Get the day order for this workout
+  const { workoutDays } = await import("../schema");
+  const [day] = await db
+    .select({ dayOrder: workoutDays.dayOrder })
+    .from(workoutDays)
+    .where(eq(workoutDays.id, lastWorkout.dayId))
+    .limit(1);
+
+  if (!day) {
+    return null;
+  }
+
+  return {
+    dayId: lastWorkout.dayId,
+    dayOrder: day.dayOrder,
+  };
+}

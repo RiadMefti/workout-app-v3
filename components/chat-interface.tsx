@@ -15,6 +15,7 @@ import { WorkoutHistoryCalendar } from "./workout-history-calendar";
 import { WorkoutRoutineManager } from "./workout-routine-manager";
 import { AIRoutineInputForm } from "./ai-routine-input-form";
 import { WorkoutRoutineCreator } from "./workout-routine-creator";
+import { WorkoutRecorder } from "./workout-recorder";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -52,6 +53,7 @@ export function ChatInterface() {
   const [showWorkoutHistory, setShowWorkoutHistory] = useState(false);
   const [showRoutineManager, setShowRoutineManager] = useState(false);
   const [showAIRoutineForm, setShowAIRoutineForm] = useState(false);
+  const [showWorkoutRecorder, setShowWorkoutRecorder] = useState(false);
   const [isGeneratingRoutine, setIsGeneratingRoutine] = useState(false);
   const [generatedRoutine, setGeneratedRoutine] = useState<{
     name: string;
@@ -171,6 +173,13 @@ export function ChatInterface() {
                       message.role === "assistant" && (
                         <QuickActions
                           onActionClick={(prompt) => {
+                            // Check if it's the record workout action
+                            if (
+                              prompt.toLowerCase().includes("record a workout")
+                            ) {
+                              setShowWorkoutRecorder(true);
+                              return; // Don't send message to LLM
+                            }
                             // Check if it's the workout history action
                             if (
                               prompt.toLowerCase().includes("workout history")
@@ -208,6 +217,22 @@ export function ChatInterface() {
                 {message.id === "welcome" &&
                   message.role === "assistant" &&
                   showWorkoutHistory && <WorkoutHistoryCalendar />}
+
+                {/* Show workout recorder when requested */}
+                {message.id === "welcome" &&
+                  message.role === "assistant" &&
+                  showWorkoutRecorder &&
+                  user?.id && (
+                    <WorkoutRecorder
+                      userId={user.id}
+                      onComplete={() => {
+                        setShowWorkoutRecorder(false);
+                      }}
+                      onCancel={() => {
+                        setShowWorkoutRecorder(false);
+                      }}
+                    />
+                  )}
 
                 {/* Show workout routine manager when requested */}
                 {message.id === "welcome" &&
