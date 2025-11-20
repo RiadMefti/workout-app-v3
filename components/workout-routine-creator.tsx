@@ -26,6 +26,10 @@ interface DayInput {
 }
 
 interface WorkoutRoutineCreatorProps {
+  initialRoutine?: {
+    name: string;
+    days: DayInput[];
+  };
   onCreateRoutine: (routine: {
     name: string;
     days: DayInput[];
@@ -34,17 +38,20 @@ interface WorkoutRoutineCreatorProps {
 }
 
 export function WorkoutRoutineCreator({
+  initialRoutine,
   onCreateRoutine,
   onCancel,
 }: WorkoutRoutineCreatorProps) {
-  const [routineName, setRoutineName] = useState("");
-  const [days, setDays] = useState<DayInput[]>([
-    {
-      name: "",
-      dayOrder: 1,
-      exercises: [],
-    },
-  ]);
+  const [routineName, setRoutineName] = useState(initialRoutine?.name || "");
+  const [days, setDays] = useState<DayInput[]>(
+    initialRoutine?.days || [
+      {
+        name: "",
+        dayOrder: 1,
+        exercises: [],
+      },
+    ]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addDay = () => {

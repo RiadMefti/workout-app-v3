@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createWorkoutRoutine,
-  getUserRoutines,
+  getUserRoutinesWithDetails,
   getActiveRoutine,
 } from "@/db/services";
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ routine });
     }
 
-    const routines = await getUserRoutines(userId);
+    const routines = await getUserRoutinesWithDetails(userId);
     return NextResponse.json({ routines });
   } catch (error) {
     console.error("Error fetching routines:", error);

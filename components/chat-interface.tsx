@@ -155,8 +155,11 @@ export function ChatInterface() {
                             setShowWorkoutHistory(true);
                             return; // Don't send message to LLM
                           }
-                          // Check if it's the manage routines action
-                          if (prompt.toLowerCase().includes("manage my workout routines")) {
+                          // Check if it's the manage routines or create plan action
+                          if (
+                            prompt.toLowerCase().includes("manage my workout routines") ||
+                            prompt.toLowerCase().includes("create a new workout plan")
+                          ) {
                             setShowRoutineManager(true);
                             return; // Don't send message to LLM
                           }

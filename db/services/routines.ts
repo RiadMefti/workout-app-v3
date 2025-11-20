@@ -125,6 +125,82 @@ export async function getUserRoutines(userId: string) {
 }
 
 /**
+ * Get all routines for a user with full details (days, exercises, sets)
+ */
+export async function getUserRoutinesWithDetails(
+  userId: string
+): Promise<RoutineWithDetails[]> {
+  const routines = await db
+    .select()
+    .from(workoutRoutines)
+    .where(eq(workoutRoutines.userId, userId))
+    .orderBy(workoutRoutines.createdAt);
+
+  const routinesWithDetails = await Promise.all(
+    routines.map(async (routine) => {
+      // Get all days for this routine
+      const days = await db
+        .select()
+        .from(workoutDays)
+        .where(eq(workoutDays.routineId, routine.id))
+        .orderBy(workoutDays.dayOrder);
+
+      // Get exercises and sets for each day
+      const daysWithDetails = await Promise.all(
+        days.map(async (day) => {
+          const exercises = await db
+            .select()
+            .from(dayExercises)
+            .where(eq(dayExercises.dayId, day.id))
+            .orderBy(dayExercises.exerciseOrder);
+
+          const exercisesWithSets = await Promise.all(
+            exercises.map(async (exercise) => {
+              const sets = await db
+                .select()
+                .from(exerciseSets)
+                .where(eq(exerciseSets.exerciseId, exercise.id))
+                .orderBy(exerciseSets.setNumber);
+
+              return {
+                id: exercise.id,
+                exerciseName: exercise.exerciseName,
+                exerciseOrder: exercise.exerciseOrder,
+                sets: sets.map((set) => ({
+                  id: set.id,
+                  setNumber: set.setNumber,
+                  targetReps: set.targetReps,
+                  targetWeight: set.targetWeight,
+                })),
+              };
+            })
+          );
+
+          return {
+            id: day.id,
+            name: day.name,
+            dayOrder: day.dayOrder,
+            exercises: exercisesWithSets,
+          };
+        })
+      );
+
+      return {
+        id: routine.id,
+        userId: routine.userId,
+        name: routine.name,
+        isActive: routine.isActive,
+        createdAt: routine.createdAt,
+        updatedAt: routine.updatedAt,
+        days: daysWithDetails,
+      };
+    })
+  );
+
+  return routinesWithDetails;
+}
+
+/**
  * Get the active routine for a user with all nested details
  */
 export async function getActiveRoutine(
