@@ -31,6 +31,32 @@ interface GeneratedRoutine {
 }
 
 /**
+ * API response types for runtime data
+ */
+interface APIRoutineSet {
+  setNumber: number;
+  targetReps: number;
+  targetWeight: number | null;
+}
+
+interface APIRoutineExercise {
+  exerciseName: string;
+  exerciseOrder: number;
+  sets: APIRoutineSet[];
+}
+
+interface APIRoutineDay {
+  name: string;
+  dayOrder: number;
+  exercises: APIRoutineExercise[];
+}
+
+interface APIRoutine {
+  name: string;
+  days: APIRoutineDay[];
+}
+
+/**
  * Custom hook for AI routine generation workflow
  * Handles the API call, loading state, error handling, and data normalization
  */
@@ -63,16 +89,16 @@ export function useRoutineGeneration() {
         throw new Error(errorData.error || "Failed to generate routine");
       }
 
-      const data = await response.json();
+      const data: { routine: APIRoutine } = await response.json();
 
       // Normalize data: convert null targetWeight to 0 for form compatibility
       const normalizedRoutine: GeneratedRoutine = {
         ...data.routine,
-        days: data.routine.days.map((day: any) => ({
+        days: data.routine.days.map((day: APIRoutineDay) => ({
           ...day,
-          exercises: day.exercises.map((exercise: any) => ({
+          exercises: day.exercises.map((exercise: APIRoutineExercise) => ({
             ...exercise,
-            sets: exercise.sets.map((set: any) => ({
+            sets: exercise.sets.map((set: APIRoutineSet) => ({
               ...set,
               targetWeight: set.targetWeight ?? 0,
             })),

@@ -397,18 +397,29 @@ export function ChatInterface() {
 
       {/* Input */}
       <div className="shrink-0 border-t p-4 bg-background">
-        <div className="flex gap-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className="flex gap-2"
+        >
           <Input
             placeholder="Type your message..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1"
+            aria-label="Chat message input"
           />
-          <Button onClick={handleSend} size="icon">
+          <Button
+            type="submit"
+            size="icon"
+            aria-label="Send message"
+          >
             <Send className="h-4 w-4" />
           </Button>
-        </div>
+        </form>
       </div>
     </div>
   );

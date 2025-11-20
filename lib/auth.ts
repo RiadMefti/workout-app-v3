@@ -1,5 +1,6 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { NextResponse } from "next/server";
+import { ERROR_MESSAGES } from "./constants";
 
 /**
  * Authentication and authorization helper for API routes
@@ -21,7 +22,7 @@ export async function requireAuth() {
     if (!auth.user) {
       return {
         error: NextResponse.json(
-          { success: false, error: "Unauthorized" },
+          { success: false, error: ERROR_MESSAGES.UNAUTHORIZED },
           { status: 401 }
         ),
       };
@@ -34,7 +35,7 @@ export async function requireAuth() {
   } catch (error) {
     return {
       error: NextResponse.json(
-        { success: false, error: "Unauthorized" },
+        { success: false, error: ERROR_MESSAGES.UNAUTHORIZED },
         { status: 401 }
       ),
     };
@@ -56,7 +57,7 @@ export function verifyOwnership(
     return NextResponse.json(
       {
         success: false,
-        error: "Forbidden: You don't have access to this resource",
+        error: ERROR_MESSAGES.FORBIDDEN,
       },
       { status: 403 }
     );

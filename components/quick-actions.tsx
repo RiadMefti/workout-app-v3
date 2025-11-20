@@ -56,6 +56,15 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
             <Card
               key={action.id}
               onClick={() => onActionClick(action.prompt)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onActionClick(action.prompt);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-label={action.title}
               className="group relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:border-primary/50"
             >
               {/* Content */}
