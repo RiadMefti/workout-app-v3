@@ -167,7 +167,9 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
       throw new Error(errorData.error || "Failed to generate routine");
     }
 
@@ -220,7 +222,12 @@ export function WorkoutRoutineManager({ userId }: WorkoutRoutineManagerProps) {
                 <label className="text-sm font-medium">
                   How would you like to create your routine?
                 </label>
-                <Select value={createMode} onValueChange={(value: "ai" | "custom") => setCreateMode(value)}>
+                <Select
+                  value={createMode}
+                  onValueChange={(value: "ai" | "custom") =>
+                    setCreateMode(value)
+                  }
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a creation method..." />
                   </SelectTrigger>
