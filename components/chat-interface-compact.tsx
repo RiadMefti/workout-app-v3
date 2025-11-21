@@ -58,6 +58,22 @@ export function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Handle AI-triggered workout modals
+  useEffect(() => {
+    for (const message of messages) {
+      for (const part of message.parts) {
+        if (
+          part.type === "tool-getSpecificWorkout" &&
+          part.state === "output-available" &&
+          part.output.success
+        ) {
+          setAiModalWorkout(part.output.workout);
+          return; // Exit early once we find a workout to display
+        }
+      }
+    }
+  }, [messages]);
+
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputValue.trim()) return;
@@ -311,15 +327,8 @@ export function ChatInterface() {
                   }
 
                   if (part.type === "tool-getSpecificWorkout") {
-                    if (part.state === "output-available" && part.output.success) {
-                      return (
-                        <WorkoutDetailModal
-                          key={`${message.id}-${i}`}
-                          workout={part.output.workout}
-                          onClose={() => {}}
-                        />
-                      );
-                    }
+                    // Modal is rendered at component level via useEffect
+                    return null;
                   }
 
                   return null;
@@ -348,6 +357,14 @@ export function ChatInterface() {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* AI-triggered workout detail modal */}
+      {aiModalWorkout && (
+        <WorkoutDetailModal
+          workout={aiModalWorkout}
+          onClose={() => setAiModalWorkout(null)}
+        />
+      )}
 
       {/* Input */}
       <div className="shrink-0 border-t p-3 bg-background">
