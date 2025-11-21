@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, ChevronDown, Check, Loader2 } from "lucide-react";
+import { Plus, ChevronDown, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,11 +28,13 @@ interface WorkoutRoutine {
 interface CompactRoutineManagerProps {
   userId: string;
   onCreateNew?: () => void;
+  onClose?: () => void;
 }
 
 export function CompactRoutineManager({
   userId,
   onCreateNew,
+  onClose,
 }: CompactRoutineManagerProps) {
   const [routines, setRoutines] = useState<WorkoutRoutine[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -86,12 +88,19 @@ export function CompactRoutineManager({
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">My Routines</h3>
-        {onCreateNew && (
-          <Button onClick={onCreateNew} size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-1" />
-            New
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {onCreateNew && (
+            <Button onClick={onCreateNew} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-1" />
+              New
+            </Button>
+          )}
+          {onClose && (
+            <Button onClick={onClose} variant="ghost" size="icon" className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {routines.length === 0 ? (

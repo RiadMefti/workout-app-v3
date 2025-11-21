@@ -1,6 +1,8 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 interface WorkoutDetailCardProps {
   workout: {
@@ -19,9 +21,10 @@ interface WorkoutDetailCardProps {
       }>;
     }>;
   };
+  onClose?: () => void;
 }
 
-export function WorkoutDetailCard({ workout }: WorkoutDetailCardProps) {
+export function WorkoutDetailCard({ workout, onClose }: WorkoutDetailCardProps) {
   const totalSets = workout.exercises.reduce(
     (acc, ex) => acc + ex.sets.length,
     0
@@ -36,15 +39,29 @@ export function WorkoutDetailCard({ workout }: WorkoutDetailCardProps) {
     <Card className="w-full overflow-hidden border-2">
       {/* Header */}
       <div className="px-4 py-3 border-b bg-muted/30">
-        <h3 className="font-bold text-base">{workout.workoutName}</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {new Date(workout.completedAt).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-bold text-base">{workout.workoutName}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {new Date(workout.completedAt).toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+          {onClose && (
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Simple Stats */}

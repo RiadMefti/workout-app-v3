@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Dumbbell, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dumbbell, Loader2, X } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 
 interface WorkoutDetails {
@@ -25,6 +25,7 @@ interface WorkoutDetails {
 
 interface EnhancedWorkoutHistoryProps {
   onWorkoutClick?: (workout: WorkoutDetails) => void;
+  onClose?: () => void;
 }
 
 interface CompletedWorkout {
@@ -38,6 +39,7 @@ const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function EnhancedWorkoutHistory({
   onWorkoutClick,
+  onClose,
 }: EnhancedWorkoutHistoryProps = {}) {
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -286,6 +288,16 @@ export function EnhancedWorkoutHistory({
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
+            {onClose && (
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 

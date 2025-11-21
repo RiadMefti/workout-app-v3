@@ -280,7 +280,24 @@ export function CompactRoutineCreator({
           <h3 className="font-semibold text-sm">Create Routine</h3>
         </div>
         {onCancel && (
-          <Button onClick={onCancel} variant="ghost" size="sm">
+          <Button
+            onClick={() => {
+              // Reset state before closing
+              setStep("mode");
+              setMode(null);
+              setRoutineName("");
+              setExperienceLevel("");
+              setDaysPerWeek("");
+              setPreferences("");
+              setCustomRoutineName("");
+              setCustomDaysPerWeek("");
+              setAiDays([]);
+              setCurrentDayIndex(0);
+              onCancel();
+            }}
+            variant="ghost"
+            size="sm"
+          >
             <X className="h-4 w-4" />
           </Button>
         )}

@@ -201,6 +201,7 @@ export function ChatInterface() {
                             <CompactRoutineManager
                               userId={user.id}
                               onCreateNew={() => {}}
+                              onClose={() => {}}
                             />
                           )}
                         </div>
@@ -272,6 +273,7 @@ export function ChatInterface() {
                         <div key={`${message.id}-${i}`} className="w-full">
                           <EnhancedWorkoutHistory
                             onWorkoutClick={handleWorkoutClick}
+                            onClose={() => {}}
                           />
                         </div>
                       );
@@ -287,6 +289,7 @@ export function ChatInterface() {
                         <WorkoutDetailCard
                           key={`${message.id}-${i}`}
                           workout={part.output.workout}
+                          onClose={() => setCalendarWorkout(null)}
                         />
                       );
                     }
@@ -318,6 +321,7 @@ export function ChatInterface() {
                           setShowRoutineManager(false);
                           setShowRoutineCreator(true);
                         }}
+                        onClose={() => setShowRoutineManager(false)}
                       />
                     )}
 
@@ -337,6 +341,7 @@ export function ChatInterface() {
                     {showWorkoutHistory && (
                       <EnhancedWorkoutHistory
                         onWorkoutClick={handleWorkoutClick}
+                        onClose={() => setShowWorkoutHistory(false)}
                       />
                     )}
                   </>
@@ -353,7 +358,10 @@ export function ChatInterface() {
                 <AvatarFallback>🏋️</AvatarFallback>
               </Avatar>
               <div className="flex flex-col gap-2 max-w-[80%]">
-                <WorkoutDetailCard workout={calendarWorkout} />
+                <WorkoutDetailCard
+                  workout={calendarWorkout}
+                  onClose={() => setCalendarWorkout(null)}
+                />
               </div>
             </div>
           )}
