@@ -15,7 +15,7 @@ import { CompactRoutineCreator } from "./compact-routine-creator";
 import { ActiveRoutineDisplay } from "./active-routine-display";
 import { NextWorkoutDisplay } from "./next-workout-display";
 import { ExerciseSearchResults } from "./exercise-search-results";
-import { WorkoutDetailModal } from "./workout-detail-modal";
+import { WorkoutDetailCard } from "./workout-detail-card";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -53,27 +53,11 @@ export function ChatInterface() {
   const [showRoutineManager, setShowRoutineManager] = useState(false);
   const [showRoutineCreator, setShowRoutineCreator] = useState(false);
   const [showWorkoutRecorder, setShowWorkoutRecorder] = useState(false);
-  const [aiModalWorkout, setAiModalWorkout] = useState<any>(null);
+  const [calendarWorkout, setCalendarWorkout] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // Handle AI-triggered workout modals
-  useEffect(() => {
-    for (const message of messages) {
-      for (const part of message.parts) {
-        if (
-          part.type === "tool-getSpecificWorkout" &&
-          part.state === "output-available" &&
-          part.output.success
-        ) {
-          setAiModalWorkout(part.output.workout);
-          return; // Exit early once we find a workout to display
-        }
-      }
-    }
   }, [messages]);
 
   const handleSend = async (e?: React.FormEvent) => {
@@ -82,9 +66,20 @@ export function ChatInterface() {
 
     sendMessage({ text: inputValue });
     setInputValue("");
+    setCalendarWorkout(null); // Clear calendar workout when sending new message
+  };
+
+  const handleWorkoutClick = (workout: any) => {
+    setCalendarWorkout(workout);
+    // Scroll to bottom after adding workout
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
   };
 
   const handleQuickAction = (prompt: string) => {
+    setCalendarWorkout(null); // Clear calendar workout when using quick actions
+    
     if (prompt.toLowerCase().includes("record a workout")) {
       setShowWorkoutRecorder(true);
       setShowRoutineManager(false);
@@ -161,79 +156,26 @@ export function ChatInterface() {
                       }`
                 }`}
               >
-                {/* Text messages */}
-                {message.parts.some((p) => p.type === "text") && (
-                  <>
-                    <div
-                      className={`rounded-lg px-3 py-2 ${
-                        message.role === "assistant"
-                          ? "bg-muted"
-                          : "bg-primary text-primary-foreground"
-                      }`}
-                    >
-                      {message.parts.map((part, i) => {
-                        if (part.type === "text") {
-                          return (
-                            <p
-                              key={`${message.id}-${i}`}
-                              className="text-sm whitespace-pre-wrap"
-                            >
-                              {part.text}
-                            </p>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-
-                    {/* Show QuickActions for welcome message */}
-                    {message.id === "welcome" &&
-                      message.role === "assistant" && (
-                        <QuickActions onActionClick={handleQuickAction} />
-                      )}
-                  </>
-                )}
-
-                {/* Show compact components */}
-                {message.id === "welcome" && message.role === "assistant" && (
-                  <>
-                    {showWorkoutRecorder && user?.id && (
-                      <CompactWorkoutRecorder
-                        userId={user.id}
-                        onComplete={() => setShowWorkoutRecorder(false)}
-                        onCancel={() => setShowWorkoutRecorder(false)}
-                      />
-                    )}
-
-                    {showRoutineManager && user?.id && (
-                      <CompactRoutineManager
-                        userId={user.id}
-                        onCreateNew={() => {
-                          setShowRoutineManager(false);
-                          setShowRoutineCreator(true);
-                        }}
-                      />
-                    )}
-
-                    {showRoutineCreator && user?.id && (
-                      <CompactRoutineCreator
-                        userId={user.id}
-                        onComplete={() => {
-                          setShowRoutineCreator(false);
-                          setShowRoutineManager(true);
-                        }}
-                        onCancel={() => {
-                          setShowRoutineCreator(false);
-                        }}
-                      />
-                    )}
-
-                    {showWorkoutHistory && <EnhancedWorkoutHistory />}
-                  </>
-                )}
-
-                {/* Tool invocations */}
+                {/* Render parts in order */}
                 {message.parts.map((part, i) => {
+                  // Text messages
+                  if (part.type === "text") {
+                    return (
+                      <div
+                        key={`${message.id}-${i}`}
+                        className={`rounded-lg px-3 py-2 ${
+                          message.role === "assistant"
+                            ? "bg-muted"
+                            : "bg-primary text-primary-foreground"
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">
+                          {part.text}
+                        </p>
+                      </div>
+                    );
+                  }
+
                   // NEW TOOLS - UI Triggers
                   if (part.type === "tool-showWorkoutRecorder") {
                     if (part.state === "output-available") {
@@ -328,22 +270,94 @@ export function ChatInterface() {
                     if (part.state === "output-available") {
                       return (
                         <div key={`${message.id}-${i}`} className="w-full">
-                          <EnhancedWorkoutHistory />
+                          <EnhancedWorkoutHistory
+                            onWorkoutClick={handleWorkoutClick}
+                          />
                         </div>
                       );
                     }
                   }
 
                   if (part.type === "tool-getSpecificWorkout") {
-                    // Modal is rendered at component level via useEffect
-                    return null;
+                    if (
+                      part.state === "output-available" &&
+                      part.output.success
+                    ) {
+                      return (
+                        <WorkoutDetailCard
+                          key={`${message.id}-${i}`}
+                          workout={part.output.workout}
+                        />
+                      );
+                    }
                   }
 
                   return null;
                 })}
+
+                {/* Show QuickActions for welcome message */}
+                {message.id === "welcome" &&
+                  message.role === "assistant" && (
+                    <QuickActions onActionClick={handleQuickAction} />
+                  )}
+
+                {/* Show compact components */}
+                {message.id === "welcome" && message.role === "assistant" && (
+                  <>
+                    {showWorkoutRecorder && user?.id && (
+                      <CompactWorkoutRecorder
+                        userId={user.id}
+                        onComplete={() => setShowWorkoutRecorder(false)}
+                        onCancel={() => setShowWorkoutRecorder(false)}
+                      />
+                    )}
+
+                    {showRoutineManager && user?.id && (
+                      <CompactRoutineManager
+                        userId={user.id}
+                        onCreateNew={() => {
+                          setShowRoutineManager(false);
+                          setShowRoutineCreator(true);
+                        }}
+                      />
+                    )}
+
+                    {showRoutineCreator && user?.id && (
+                      <CompactRoutineCreator
+                        userId={user.id}
+                        onComplete={() => {
+                          setShowRoutineCreator(false);
+                          setShowRoutineManager(true);
+                        }}
+                        onCancel={() => {
+                          setShowRoutineCreator(false);
+                        }}
+                      />
+                    )}
+
+                    {showWorkoutHistory && (
+                      <EnhancedWorkoutHistory
+                        onWorkoutClick={handleWorkoutClick}
+                      />
+                    )}
+                  </>
+                )}
               </div>
             </div>
           ))}
+
+          {/* Calendar-clicked workout display */}
+          {calendarWorkout && (
+            <div className="flex gap-2">
+              <Avatar className="h-7 w-7 shrink-0">
+                <AvatarImage src="https://api.dicebear.com/7.x/bottts/svg?seed=coach&backgroundColor=b6e3f4" />
+                <AvatarFallback>🏋️</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-2 max-w-[80%]">
+                <WorkoutDetailCard workout={calendarWorkout} />
+              </div>
+            </div>
+          )}
 
           {/* Loading indicator */}
           {(status === "submitted" || status === "streaming") && (
@@ -365,14 +379,6 @@ export function ChatInterface() {
           <div ref={messagesEndRef} />
         </div>
       </div>
-
-      {/* AI-triggered workout detail modal */}
-      {aiModalWorkout && (
-        <WorkoutDetailModal
-          workout={aiModalWorkout}
-          onClose={() => setAiModalWorkout(null)}
-        />
-      )}
 
       {/* Input */}
       <div className="shrink-0 border-t p-3 bg-background">

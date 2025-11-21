@@ -39,13 +39,13 @@ export function ExerciseSearchResults({
               <div className="flex-1 space-y-1">
                 <h4 className="font-medium text-sm">{exercise.name}</h4>
                 <div className="flex flex-wrap gap-1">
-                  {exercise.targetMuscles.slice(0, 2).map((muscle) => (
-                    <Badge key={muscle} variant="secondary" className="text-xs">
+                  {exercise.targetMuscles.slice(0, 2).map((muscle, idx) => (
+                    <Badge key={`${exercise.id}-muscle-${idx}`} variant="secondary" className="text-xs">
                       {muscle}
                     </Badge>
                   ))}
-                  {exercise.equipments.slice(0, 1).map((equip) => (
-                    <Badge key={equip} variant="outline" className="text-xs">
+                  {exercise.equipments.slice(0, 1).map((equip, idx) => (
+                    <Badge key={`${exercise.id}-equip-${idx}`} variant="outline" className="text-xs">
                       {equip}
                     </Badge>
                   ))}

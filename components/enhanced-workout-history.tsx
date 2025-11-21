@@ -4,17 +4,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Dumbbell, Loader2 } from "lucide-react";
-import { WorkoutDetailModal } from "./workout-detail-modal";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-
-interface CompletedWorkout {
-  id: string;
-  workoutName: string;
-  completedAt: Date;
-  exerciseCount: number;
-}
-
-const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface WorkoutDetails {
   id: string;
@@ -29,15 +19,27 @@ interface WorkoutDetails {
       setNumber: number;
       reps: number;
       weight: number;
-    }>;
+    }>;  
   }>;
 }
 
-export function EnhancedWorkoutHistory() {
+interface EnhancedWorkoutHistoryProps {
+  onWorkoutClick?: (workout: WorkoutDetails) => void;
+}
+
+interface CompletedWorkout {
+  id: string;
+  workoutName: string;
+  completedAt: Date;
+  exerciseCount: number;
+}
+
+const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function EnhancedWorkoutHistory({ onWorkoutClick }: EnhancedWorkoutHistoryProps = {}) {
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [workouts, setWorkouts] = useState<CompletedWorkout[]>([]);
-  const [selectedWorkout, setSelectedWorkout] = useState<WorkoutDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
@@ -105,10 +107,15 @@ export function EnhancedWorkoutHistory() {
       const response = await fetch(`/api/workouts/${workoutId}?userId=${user.id}`);
       if (response.ok) {
         const data = await response.json();
-        setSelectedWorkout({
+        const workoutDetails = {
           ...data.workout,
           completedAt: new Date(data.workout.completedAt),
-        });
+        };
+        
+        // Call the callback if provided
+        if (onWorkoutClick) {
+          onWorkoutClick(workoutDetails);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch workout details:", error);
@@ -300,14 +307,6 @@ export function EnhancedWorkoutHistory() {
           </div>
         </div>
       </Card>
-
-      {/* Workout Detail Modal */}
-      {selectedWorkout && (
-        <WorkoutDetailModal
-          workout={selectedWorkout}
-          onClose={() => setSelectedWorkout(null)}
-        />
-      )}
     </>
   );
 }
