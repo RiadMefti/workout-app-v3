@@ -32,7 +32,9 @@ export function ChatInterface() {
         parts: [
           {
             type: "text",
-            text: `Hey ${user?.firstName || "there"}! 👋 What would you like to do today?`,
+            text: `Hey ${
+              user?.firstName || "there"
+            }! 👋 What would you like to do today?`,
           },
         ],
       },
@@ -282,7 +284,10 @@ export function ChatInterface() {
 
                   // NEW TOOLS - Data Display
                   if (part.type === "tool-getActiveRoutine") {
-                    if (part.state === "output-available" && part.output.success) {
+                    if (
+                      part.state === "output-available" &&
+                      part.output.success
+                    ) {
                       return (
                         <ActiveRoutineDisplay
                           key={`${message.id}-${i}`}
@@ -293,7 +298,10 @@ export function ChatInterface() {
                   }
 
                   if (part.type === "tool-getNextWorkout") {
-                    if (part.state === "output-available" && part.output.success) {
+                    if (
+                      part.state === "output-available" &&
+                      part.output.success
+                    ) {
                       return (
                         <NextWorkoutDisplay
                           key={`${message.id}-${i}`}

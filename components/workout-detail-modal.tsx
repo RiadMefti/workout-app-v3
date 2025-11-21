@@ -24,8 +24,14 @@ interface WorkoutDetailModalProps {
   onClose: () => void;
 }
 
-export function WorkoutDetailModal({ workout, onClose }: WorkoutDetailModalProps) {
-  const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+export function WorkoutDetailModal({
+  workout,
+  onClose,
+}: WorkoutDetailModalProps) {
+  const totalSets = workout.exercises.reduce(
+    (acc, ex) => acc + ex.sets.length,
+    0
+  );
   const totalVolume = workout.exercises.reduce(
     (acc, ex) =>
       acc + ex.sets.reduce((setAcc, set) => setAcc + set.reps * set.weight, 0),
@@ -56,7 +62,12 @@ export function WorkoutDetailModal({ workout, onClose }: WorkoutDetailModalProps
               })}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="shrink-0"
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -70,7 +81,9 @@ export function WorkoutDetailModal({ workout, onClose }: WorkoutDetailModalProps
           <div>
             <span className="text-muted-foreground">Volume:</span>{" "}
             <span className="font-semibold">
-              {totalVolume > 0 ? `${totalVolume.toLocaleString()} lbs` : "0 lbs"}
+              {totalVolume > 0
+                ? `${totalVolume.toLocaleString()} lbs`
+                : "0 lbs"}
             </span>
           </div>
         </div>
