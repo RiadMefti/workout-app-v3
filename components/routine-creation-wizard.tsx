@@ -49,6 +49,17 @@ export function RoutineCreationWizard({ userId }: RoutineCreationWizardProps) {
     }>
   >([]);
 
+  // AI Mode - Editable Days State (initialized from generatedRoutine)
+  const [aiDays, setAiDays] = useState<
+    Array<{
+      name: string;
+      exercises: Array<{
+        exerciseName: string;
+        sets: Array<{ targetReps: number; targetWeight: number }>;
+      }>;
+    }>
+  >([]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -65,13 +76,30 @@ export function RoutineCreationWizard({ userId }: RoutineCreationWizardProps) {
     }
 
     try {
-      await generateRoutine({
+      const result = await generateRoutine({
         routineName: routineName.trim(),
         experienceLevel,
         daysPerWeek: parseInt(daysPerWeek),
         preferences: preferences.trim(),
       });
-      setStep(3); // Move to review step
+      // Initialize editable AI days from generated routine
+      if (result && result.days) {
+        setAiDays(
+          result.days.map((day) => ({
+            name: day.name,
+            exercises: day.exercises.map((ex) => ({
+              exerciseName: ex.exerciseName,
+              sets: ex.sets.map((s) => ({
+                targetReps: s.targetReps,
+                targetWeight: s.targetWeight,
+              })),
+            })),
+          }))
+        );
+        setCurrentDayIndex(0);
+      }
+      // Move to step-by-step day editing for AI-generated routine
+      setStep(3);
     } catch (error) {
       toast.error("Failed to generate routine");
     }
@@ -127,16 +155,43 @@ export function RoutineCreationWizard({ userId }: RoutineCreationWizardProps) {
     }
   };
 
+  const handleAINext = () => {
+    // Validate current AI day
+    const currentDay = aiDays[currentDayIndex];
+    if (!currentDay.name.trim()) {
+      toast.error("Please enter a day name");
+      return;
+    }
+    if (currentDay.exercises.length === 0) {
+      toast.error("Please add at least one exercise");
+      return;
+    }
+
+    for (const ex of currentDay.exercises) {
+      if (!ex.exerciseName.trim()) {
+        toast.error("Please name all exercises");
+        return;
+      }
+    }
+
+    // Move to next day or finish
+    if (currentDayIndex < aiDays.length - 1) {
+      setCurrentDayIndex(currentDayIndex + 1);
+    } else {
+      setStep(4); // Review step
+    }
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       let payload;
 
-      if (mode === "ai" && generatedRoutine) {
+      if (mode === "ai" && aiDays.length > 0) {
         payload = {
           userId,
-          name: generatedRoutine.name,
-          days: generatedRoutine.days.map((day, dayIdx) => ({
+          name: routineName,
+          days: aiDays.map((day, dayIdx) => ({
             name: day.name,
             dayOrder: dayIdx + 1,
             exercises: day.exercises.map((ex, exIdx) => ({
@@ -243,6 +298,62 @@ export function RoutineCreationWizard({ userId }: RoutineCreationWizardProps) {
     setDays(updated);
   };
 
+  // AI Days editing functions
+  const updateAiDayName = (index: number, name: string) => {
+    const updated = [...aiDays];
+    updated[index].name = name;
+    setAiDays(updated);
+  };
+
+  const addAiExercise = () => {
+    const updated = [...aiDays];
+    updated[currentDayIndex].exercises.push({
+      exerciseName: "",
+      sets: [{ targetReps: 10, targetWeight: 0 }],
+    });
+    setAiDays(updated);
+  };
+
+  const removeAiExercise = (exIndex: number) => {
+    const updated = [...aiDays];
+    updated[currentDayIndex].exercises.splice(exIndex, 1);
+    setAiDays(updated);
+  };
+
+  const updateAiExerciseName = (exIndex: number, name: string) => {
+    const updated = [...aiDays];
+    updated[currentDayIndex].exercises[exIndex].exerciseName = name;
+    setAiDays(updated);
+  };
+
+  const addAiSet = (exIndex: number) => {
+    const updated = [...aiDays];
+    updated[currentDayIndex].exercises[exIndex].sets.push({
+      targetReps: 10,
+      targetWeight: 0,
+    });
+    setAiDays(updated);
+  };
+
+  const removeAiSet = (exIndex: number, setIndex: number) => {
+    const updated = [...aiDays];
+    const exercise = updated[currentDayIndex].exercises[exIndex];
+    if (exercise.sets.length === 1) return;
+    exercise.sets.splice(setIndex, 1);
+    setAiDays(updated);
+  };
+
+  const updateAiSet = (
+    exIndex: number,
+    setIndex: number,
+    field: "targetReps" | "targetWeight",
+    value: number
+  ) => {
+    const updated = [...aiDays];
+    updated[currentDayIndex].exercises[exIndex].sets[setIndex][field] = value;
+    setAiDays(updated);
+  };
+
   return (
     <div className="container max-w-2xl mx-auto p-4 min-h-screen">
       {/* Header */}
@@ -263,7 +374,7 @@ export function RoutineCreationWizard({ userId }: RoutineCreationWizardProps) {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Create Routine</h1>
           <p className="text-sm text-muted-foreground">
-            Step {step} of {mode === "custom" ? 4 : 3}
+            Step {step} of 4
           </p>
         </div>
       </div>
@@ -427,33 +538,145 @@ export function RoutineCreationWizard({ userId }: RoutineCreationWizardProps) {
         </div>
       )}
 
-      {/* Step 3: AI Review / Custom Day Builder */}
-      {step === 3 && mode === "ai" && generatedRoutine && (
+      {/* Step 3: AI Day-by-Day Editor */}
+      {step === 3 && mode === "ai" && aiDays.length > 0 && (
         <div className="space-y-4">
-          <div className="bg-muted/50 rounded-lg p-4 mb-4">
-            <h3 className="font-semibold mb-2">{generatedRoutine.name}</h3>
+          {/* Progress */}
+          <div className="flex gap-2 mb-6">
+            {aiDays.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-2 flex-1 rounded-full ${
+                  idx <= currentDayIndex ? "bg-primary" : "bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="bg-muted/50 rounded-lg p-3 mb-4">
             <p className="text-sm text-muted-foreground">
-              {generatedRoutine.days.length} day split
+              Day {currentDayIndex + 1} of {aiDays.length} - Review and edit as needed
             </p>
           </div>
 
-          {generatedRoutine.days.map((day, idx) => (
-            <Card key={idx} className="p-4">
-              <h4 className="font-medium mb-2">{day.name}</h4>
-              <ul className="space-y-1">
-                {day.exercises.map((ex, exIdx) => (
-                  <li key={exIdx} className="text-sm text-muted-foreground">
-                    • {ex.exerciseName} - {ex.sets.length} sets
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          ))}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Day Name</Label>
+              <Input
+                value={aiDays[currentDayIndex].name}
+                onChange={(e) => updateAiDayName(currentDayIndex, e.target.value)}
+                placeholder="e.g., Push Day, Leg Day"
+              />
+            </div>
 
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
-            {isSubmitting ? "Creating..." : "Create Routine"}
-            <Check className="h-5 w-5 ml-2" />
-          </Button>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Exercises</Label>
+                <Badge variant="secondary">
+                  {aiDays[currentDayIndex].exercises.length} exercises
+                </Badge>
+              </div>
+
+              {aiDays[currentDayIndex].exercises.map((ex, exIdx) => (
+                <Card key={exIdx} className="p-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Input
+                      value={ex.exerciseName}
+                      onChange={(e) => updateAiExerciseName(exIdx, e.target.value)}
+                      placeholder="Exercise name"
+                      className="flex-1"
+                    />
+                    {aiDays[currentDayIndex].exercises.length > 1 && (
+                      <Button
+                        onClick={() => removeAiExercise(exIdx)}
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {ex.sets.map((set, setIdx) => (
+                    <div key={setIdx} className="flex items-center gap-2 mb-2">
+                      <span className="text-sm text-muted-foreground w-12">
+                        Set {setIdx + 1}
+                      </span>
+                      <Input
+                        type="number"
+                        value={set.targetReps}
+                        onChange={(e) =>
+                          updateAiSet(
+                            exIdx,
+                            setIdx,
+                            "targetReps",
+                            parseInt(e.target.value) || 0
+                          )
+                        }
+                        placeholder="Reps"
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={set.targetWeight}
+                        onChange={(e) =>
+                          updateAiSet(
+                            exIdx,
+                            setIdx,
+                            "targetWeight",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        placeholder="Weight"
+                        step="2.5"
+                        className="flex-1"
+                      />
+                      {ex.sets.length > 1 && (
+                        <Button
+                          onClick={() => removeAiSet(exIdx, setIdx)}
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+
+                  <Button
+                    onClick={() => addAiSet(exIdx)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Set
+                  </Button>
+                </Card>
+              ))}
+
+              <Button onClick={addAiExercise} variant="outline" className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Exercise
+              </Button>
+            </div>
+
+            <Button onClick={handleAINext} className="w-full" size="lg">
+              {currentDayIndex < aiDays.length - 1 ? (
+                <>
+                  Next Day
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </>
+              ) : (
+                <>
+                  Review
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -592,17 +815,19 @@ export function RoutineCreationWizard({ userId }: RoutineCreationWizardProps) {
         </div>
       )}
 
-      {/* Step 4: Custom Review */}
-      {step === 4 && mode === "custom" && (
+      {/* Step 4: Final Review */}
+      {step === 4 && (
         <div className="space-y-4">
           <div className="bg-muted/50 rounded-lg p-4 mb-4">
-            <h3 className="font-semibold mb-2">{customRoutineName}</h3>
+            <h3 className="font-semibold mb-2">
+              {mode === "ai" ? routineName : customRoutineName}
+            </h3>
             <p className="text-sm text-muted-foreground">
-              {days.length} day split
+              {mode === "ai" ? aiDays.length : days.length} day split
             </p>
           </div>
 
-          {days.map((day, idx) => (
+          {(mode === "ai" ? aiDays : days).map((day, idx) => (
             <Card key={idx} className="p-4">
               <h4 className="font-medium mb-2">{day.name}</h4>
               <ul className="space-y-1">
