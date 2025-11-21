@@ -1,46 +1,227 @@
 import { tool as createTool } from "ai";
 import { z } from "zod";
-import {
-  WorkoutGenerator,
-  type WorkoutPlan,
-  type WorkoutDay,
-} from "@/lib/services/workout-generator";
 import { ExerciseService } from "@/lib/services/exercise-service";
 import type { Equipment, TargetMuscle } from "@/lib/types/exercise";
+import {
+  getActiveRoutine as getActiveRoutineFromDb,
+  getUserRoutinesWithDetails,
+  getLastCompletedWorkoutForRoutine,
+} from "@/db/services";
 
-export const showWorkoutPlanQuestions = createTool({
+/**
+ * NEW AI TOOLS - Comprehensive set for smart workout coach
+ */
+
+// ============================================================================
+// UI TRIGGER TOOLS - Show compact UI components
+// ============================================================================
+
+export const showWorkoutRecorder = createTool({
   description:
-    "Display workout plan configuration UI with experience level options",
+    "Display the workout recorder UI so the user can log their completed workout. Use this when the user wants to record, log, or track a workout they just did or are currently doing.",
   inputSchema: z.object({
-    userName: z.string().describe("The user's first name"),
+    message: z
+      .string()
+      .optional()
+      .describe("Optional encouraging message to show the user"),
   }),
-  execute: async function ({ userName }) {
+  execute: async function ({ message }) {
     return {
-      type: "workout-plan-questions",
-      userName,
-      options: ["Beginner", "Intermediate", "Advanced"] as const,
+      type: "show-workout-recorder",
+      message: message || "Let's record your workout! 💪",
     };
   },
 });
 
-export const showWorkoutDaysSelector = createTool({
-  description: "Display workout days per week selector UI",
+export const showRoutineManager = createTool({
+  description:
+    "Display the user's workout routines manager UI. Use this when the user asks to see their routines, manage routines, or view their workout plans.",
   inputSchema: z.object({
-    experienceLevel: z.string().describe("The user's experience level"),
+    message: z
+      .string()
+      .optional()
+      .describe("Optional message to show with the routines"),
   }),
-  execute: async function ({ experienceLevel }) {
+  execute: async function ({ message }) {
     return {
-      type: "workout-days-selector",
-      experienceLevel,
-      daysOptions: [1, 2, 3, 4, 5, 6, 7] as const,
+      type: "show-routine-manager",
+      message: message || "Here are your workout routines:",
     };
   },
 });
+
+export const showRoutineCreator = createTool({
+  description:
+    "Display the routine creator UI to help the user create a new workout routine. Use this when the user wants to create, build, or design a new workout plan/routine. The creator supports both AI-generated and custom routines.",
+  inputSchema: z.object({
+    message: z
+      .string()
+      .optional()
+      .describe("Optional message about creating the routine"),
+  }),
+  execute: async function ({ message }) {
+    return {
+      type: "show-routine-creator",
+      message: message || "Let's create your new routine! 🎯",
+    };
+  },
+});
+
+// ============================================================================
+// DATA FETCHING TOOLS - Get user's actual workout data
+// ============================================================================
+
+export const getActiveRoutine = createTool({
+  description:
+    "Fetch the user's currently active workout routine from the database. Use this when the user asks what their workout plan is, what routine they're following, or what their active program is. Returns the routine with all days and exercises.",
+  inputSchema: z.object({
+    userId: z.string().describe("The user's ID"),
+  }),
+  execute: async function ({ userId }) {
+    try {
+      const routine = await getActiveRoutineFromDb(userId);
+
+      if (!routine) {
+        return {
+          type: "active-routine-result",
+          success: false,
+          message: "You don't have an active routine. Would you like to create one?",
+        };
+      }
+
+      return {
+        type: "active-routine-result",
+        success: true,
+        routine,
+      };
+    } catch (error) {
+      console.error("[getActiveRoutine tool] Error:", error);
+      return {
+        type: "active-routine-result",
+        success: false,
+        message: "I couldn't fetch your routine. Please try again.",
+      };
+    }
+  },
+});
+
+export const getNextWorkout = createTool({
+  description:
+    "Get the user's next scheduled workout from their active routine. Use this when the user asks what workout is next, what they should do today, or what's their next session.",
+  inputSchema: z.object({
+    userId: z.string().describe("The user's ID"),
+  }),
+  execute: async function ({ userId }) {
+    try {
+      // Get the active routine
+      const activeRoutine = await getActiveRoutineFromDb(userId);
+
+      if (
+        !activeRoutine ||
+        !activeRoutine.days ||
+        activeRoutine.days.length === 0
+      ) {
+        return {
+          type: "next-workout-result",
+          success: false,
+          message:
+            "You don't have an active routine set up, so I can't determine your next workout.",
+        };
+      }
+
+      // Get the last completed workout for this routine
+      const lastWorkout = await getLastCompletedWorkoutForRoutine(
+        userId,
+        activeRoutine.id
+      );
+
+      let nextDay;
+
+      if (!lastWorkout || lastWorkout.dayOrder === null) {
+        // No previous workout, start with day 1
+        nextDay = activeRoutine.days.find((day) => day.dayOrder === 1);
+      } else {
+        // Find the next day in the routine
+        const currentDayOrder = lastWorkout.dayOrder;
+        const nextDayOrder = currentDayOrder + 1;
+
+        // Check if there's a next day
+        nextDay = activeRoutine.days.find((day) => day.dayOrder === nextDayOrder);
+
+        // If no next day, cycle back to day 1
+        if (!nextDay) {
+          nextDay = activeRoutine.days.find((day) => day.dayOrder === 1);
+        }
+      }
+
+      if (!nextDay) {
+        return {
+          type: "next-workout-result",
+          success: false,
+          message: "Could not determine your next workout.",
+        };
+      }
+
+      return {
+        type: "next-workout-result",
+        success: true,
+        workout: {
+          dayName: nextDay.name,
+          routineName: activeRoutine.name,
+          exercises: nextDay.exercises,
+        },
+      };
+    } catch (error) {
+      console.error("[getNextWorkout tool] Error:", error);
+      return {
+        type: "next-workout-result",
+        success: false,
+        message: "I couldn't fetch your next workout. Please try again.",
+      };
+    }
+  },
+});
+
+export const getUserRoutines = createTool({
+  description:
+    "Fetch all of the user's workout routines from the database. Use this when the user asks how many routines they have, wants to see a list of their programs, or asks about their saved routines.",
+  inputSchema: z.object({
+    userId: z.string().describe("The user's ID"),
+  }),
+  execute: async function ({ userId }) {
+    try {
+      const routines = await getUserRoutinesWithDetails(userId);
+
+      return {
+        type: "user-routines-result",
+        success: true,
+        routines: routines || [],
+        count: routines?.length || 0,
+      };
+    } catch (error) {
+      console.error("[getUserRoutines tool] Error:", error);
+      return {
+        type: "user-routines-result",
+        success: false,
+        routines: [],
+        message: "I couldn't fetch your routines.",
+      };
+    }
+  },
+});
+
+// ============================================================================
+// EXERCISE TOOLS - Search and demonstrate exercises
+// ============================================================================
 
 export const searchExercises = createTool({
   description:
-    "Search for exercises in the database by target muscles and equipment. Use this to find specific exercises when building a workout plan. Returns exercise details including name, target muscles, equipment, gif URL, and instructions.",
+    "Search for exercises in the database by target muscles, equipment, or name. Use this to find exercises when answering questions about training specific muscles, when the user asks for exercise recommendations, or when looking for a specific exercise. Returns exercise details including name, target muscles, equipment, gif URL, and instructions.",
   inputSchema: z.object({
+    exerciseName: z
+      .string()
+      .optional()
+      .describe("Name of a specific exercise to search for (e.g., 'bench press', 'squat')"),
     targetMuscles: z
       .array(
         z.enum([
@@ -76,166 +257,127 @@ export const searchExercises = createTool({
     limit: z
       .number()
       .min(1)
-      .max(50)
-      .default(10)
+      .max(20)
+      .default(5)
       .describe("Maximum number of exercises to return"),
   }),
-  execute: async function ({ targetMuscles, equipments, limit }) {
+  execute: async function ({ exerciseName, targetMuscles, equipments, limit }) {
+    // If searching by name, get a larger set to filter from
+    const searchLimit = exerciseName ? 100 : (limit || 5);
+
     const result = ExerciseService.search({
       targetMuscles: targetMuscles as TargetMuscle[] | undefined,
       equipments: equipments as Equipment[] | undefined,
-      limit: limit || 10,
+      limit: searchLimit,
     });
 
+    // Filter by name if provided
+    let exercises = result.exercises;
+    if (exerciseName) {
+      exercises = exercises.filter((ex) =>
+        ex.name.toLowerCase().includes(exerciseName.toLowerCase())
+      );
+      // Limit results when searching by name
+      exercises = exercises.slice(0, limit || 5);
+    }
+
     return {
-      exercises: result.exercises,
-      total: result.total,
+      type: "exercise-search-result",
+      exercises,
+      total: exercises.length,
     };
   },
 });
 
-export const generateWorkoutPlan = createTool({
-  description:
-    "Generate and display a complete workout plan. Provide the workout structure with day names (e.g., 'Push', 'Pull', 'Legs', 'Upper Body', 'Lower Body', 'Full Body') and exercises for each day. The exercises should be actual exercise objects from the database that you found using searchExercises.",
-  inputSchema: z.object({
-    daysPerWeek: z
-      .number()
-      .min(1)
-      .max(7)
-      .describe("Number of training days per week"),
-    split: z
-      .enum([
-        "fullbody",
-        "upper-lower",
-        "push-pull-legs",
-        "push-pull-legs-upper-lower",
-      ])
-      .describe("The workout split type"),
-    workoutDays: z
-      .array(
-        z.object({
-          name: z.string().describe("Day name (e.g., 'Push', 'Pull', 'Legs')"),
-          focus: z
-            .array(z.string())
-            .describe("Muscle groups focused on this day"),
-          exercises: z
-            .array(
-              z.object({
-                exerciseId: z.string(),
-                name: z.string(),
-                gifUrl: z.string(),
-                targetMuscles: z.array(z.string()),
-                equipments: z.array(z.string()),
-                instructions: z.array(z.string()).optional(),
-              })
-            )
-            .describe("List of exercises for this workout day"),
-        })
-      )
-      .describe("Array of workout days with their exercises"),
-  }),
-  execute: async function ({ daysPerWeek, split, workoutDays }) {
-    // Add rest days to create a 7-day week
-    const fullWeek = WorkoutGenerator.createWeeklyScheduleFromDays(
-      workoutDays as WorkoutDay[],
-      daysPerWeek
-    );
-
-    const plan: WorkoutPlan = {
-      split,
-      daysPerWeek,
-      workoutDays: fullWeek,
-    };
-
-    const formatted = WorkoutGenerator.formatPlanForDisplay(plan);
-
-    return {
-      plan,
-      formattedPlan: formatted,
-      split,
-      daysPerWeek,
-    };
-  },
-});
+// ============================================================================
+// EXPORT ALL TOOLS
+// ============================================================================
 
 export const tools = {
-  showWorkoutPlanQuestions,
-  showWorkoutDaysSelector,
+  // UI triggers
+  showWorkoutRecorder,
+  showRoutineManager,
+  showRoutineCreator,
+
+  // Data fetching
+  getActiveRoutine,
+  getNextWorkout,
+  getUserRoutines,
+
+  // Exercise tools
   searchExercises,
-  generateWorkoutPlan,
 };
 
-// Export types for each tool
-export type ShowWorkoutPlanQuestionsTool = {
-  input: { userName: string };
-  output: {
-    type: "workout-plan-questions";
-    userName: string;
-    options: readonly ["Beginner", "Intermediate", "Advanced"];
-  };
-};
+// ============================================================================
+// TYPE EXPORTS FOR TYPESCRIPT
+// ============================================================================
 
-export type ShowWorkoutDaysSelectorTool = {
-  input: { experienceLevel: string };
-  output: {
-    type: "workout-days-selector";
-    experienceLevel: string;
-    daysOptions: readonly [1, 2, 3, 4, 5, 6, 7];
-  };
-};
-
-export type SearchExercisesTool = {
-  input: {
-    targetMuscles?: string[];
-    equipments?: string[];
-    limit?: number;
-  };
-  output: {
-    exercises: Array<{
-      exerciseId: string;
-      name: string;
-      gifUrl: string;
-      targetMuscles: string[];
-      equipments: string[];
-      instructions?: string[];
-    }>;
-    total: number;
-  };
-};
-
-export type GenerateWorkoutPlanTool = {
-  input: {
-    daysPerWeek: number;
-    split:
-      | "fullbody"
-      | "upper-lower"
-      | "push-pull-legs"
-      | "push-pull-legs-upper-lower";
-    workoutDays: Array<{
-      name: string;
-      focus: string[];
-      exercises: Array<{
-        exerciseId: string;
-        name: string;
-        gifUrl: string;
-        targetMuscles: string[];
-        equipments: string[];
-        instructions?: string[];
-      }>;
-    }>;
-  };
-  output: {
-    plan: WorkoutPlan;
-    formattedPlan: string;
-    split: string;
-    daysPerWeek: number;
-  };
-};
-
-// Combine all tool types for useChat
 export type AppTools = {
-  showWorkoutPlanQuestions: ShowWorkoutPlanQuestionsTool;
-  showWorkoutDaysSelector: ShowWorkoutDaysSelectorTool;
-  searchExercises: SearchExercisesTool;
-  generateWorkoutPlan: GenerateWorkoutPlanTool;
+  showWorkoutRecorder: {
+    input: { message?: string };
+    output: { type: "show-workout-recorder"; message: string };
+  };
+  showRoutineManager: {
+    input: { message?: string };
+    output: { type: "show-routine-manager"; message: string };
+  };
+  showRoutineCreator: {
+    input: { message?: string };
+    output: { type: "show-routine-creator"; message: string };
+  };
+  getActiveRoutine: {
+    input: { userId: string };
+    output:
+      | {
+          type: "active-routine-result";
+          success: true;
+          routine: any;
+        }
+      | {
+          type: "active-routine-result";
+          success: false;
+          message: string;
+        };
+  };
+  getNextWorkout: {
+    input: { userId: string };
+    output:
+      | {
+          type: "next-workout-result";
+          success: true;
+          workout: {
+            dayName: string;
+            routineName: string;
+            exercises: any[];
+          };
+        }
+      | {
+          type: "next-workout-result";
+          success: false;
+          message: string;
+        };
+  };
+  getUserRoutines: {
+    input: { userId: string };
+    output: {
+      type: "user-routines-result";
+      success: boolean;
+      routines: any[];
+      count?: number;
+      message?: string;
+    };
+  };
+  searchExercises: {
+    input: {
+      exerciseName?: string;
+      targetMuscles?: string[];
+      equipments?: string[];
+      limit?: number;
+    };
+    output: {
+      type: "exercise-search-result";
+      exercises: any[];
+      total: number;
+    };
+  };
 };

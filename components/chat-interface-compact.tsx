@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useChat } from "@ai-sdk/react";
-import { WorkoutPlanQuestions } from "./workout-plan-questions";
-import { WorkoutDaysSelector } from "./workout-days-selector";
-import { WorkoutPlanDisplay } from "./workout-plan-display";
 import { QuickActions } from "./quick-actions";
 import { WorkoutHistoryCalendar } from "./workout-history-calendar";
 import { CompactWorkoutRecorder } from "./compact-workout-recorder";
 import { CompactRoutineManager } from "./compact-routine-manager";
 import { CompactRoutineCreator } from "./compact-routine-creator";
+import { ActiveRoutineDisplay } from "./active-routine-display";
+import { NextWorkoutDisplay } from "./next-workout-display";
+import { ExerciseSearchResults } from "./exercise-search-results";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -214,50 +214,84 @@ export function ChatInterface() {
 
                 {/* Tool invocations */}
                 {message.parts.map((part, i) => {
-                  if (part.type === "tool-showWorkoutPlanQuestions") {
+                  // NEW TOOLS - UI Triggers
+                  if (part.type === "tool-showWorkoutRecorder") {
                     if (part.state === "output-available") {
                       return (
-                        <WorkoutPlanQuestions
+                        <div key={`${message.id}-${i}`} className="w-full">
+                          {user?.id && (
+                            <CompactWorkoutRecorder
+                              userId={user.id}
+                              onComplete={() => {}}
+                              onCancel={() => {}}
+                            />
+                          )}
+                        </div>
+                      );
+                    }
+                  }
+
+                  if (part.type === "tool-showRoutineManager") {
+                    if (part.state === "output-available") {
+                      return (
+                        <div key={`${message.id}-${i}`} className="w-full">
+                          {user?.id && (
+                            <CompactRoutineManager
+                              userId={user.id}
+                              onCreateNew={() => {}}
+                            />
+                          )}
+                        </div>
+                      );
+                    }
+                  }
+
+                  if (part.type === "tool-showRoutineCreator") {
+                    if (part.state === "output-available") {
+                      return (
+                        <div key={`${message.id}-${i}`} className="w-full">
+                          {user?.id && (
+                            <CompactRoutineCreator
+                              userId={user.id}
+                              onComplete={() => {}}
+                              onCancel={() => {}}
+                            />
+                          )}
+                        </div>
+                      );
+                    }
+                  }
+
+                  // NEW TOOLS - Data Display
+                  if (part.type === "tool-getActiveRoutine") {
+                    if (part.state === "output-available" && part.output.success) {
+                      return (
+                        <ActiveRoutineDisplay
                           key={`${message.id}-${i}`}
-                          userName={part.output.userName}
-                          options={part.output.options}
-                          onSelect={(level) => {
-                            sendMessage({
-                              text: `I'm ${level.toLowerCase()} level`,
-                            });
-                          }}
+                          routine={part.output.routine}
                         />
                       );
                     }
                   }
 
-                  if (part.type === "tool-showWorkoutDaysSelector") {
-                    if (part.state === "output-available") {
+                  if (part.type === "tool-getNextWorkout") {
+                    if (part.state === "output-available" && part.output.success) {
                       return (
-                        <WorkoutDaysSelector
+                        <NextWorkoutDisplay
                           key={`${message.id}-${i}`}
-                          experienceLevel={part.output.experienceLevel}
-                          daysOptions={part.output.daysOptions}
-                          onSelect={(days) => {
-                            sendMessage({
-                              text: `I want to train ${days} ${
-                                days === 1 ? "day" : "days"
-                              } per week`,
-                            });
-                          }}
+                          workout={part.output.workout}
                         />
                       );
                     }
                   }
 
-                  if (part.type === "tool-generateWorkoutPlan") {
+                  if (part.type === "tool-searchExercises") {
                     if (part.state === "output-available") {
                       return (
-                        <WorkoutPlanDisplay
+                        <ExerciseSearchResults
                           key={`${message.id}-${i}`}
-                          plan={part.output.plan}
-                          split={part.output.split}
-                          daysPerWeek={part.output.daysPerWeek}
+                          exercises={part.output.exercises}
+                          total={part.output.total}
                         />
                       );
                     }

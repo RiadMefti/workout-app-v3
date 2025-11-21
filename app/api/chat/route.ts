@@ -1,4 +1,4 @@
-import { streamText, UIMessage, convertToModelMessages } from "ai";
+import { streamText, UIMessage, convertToModelMessages, stepCountIs } from "ai";
 import { tools } from "@/ai/tools";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import {
@@ -50,18 +50,20 @@ export async function POST(req: NextRequest) {
     }
 
     const userName = auth.user?.firstName || undefined;
+    const userId = auth.user.id;
     const aiProvider = getAIProvider();
 
     // AI SDK 5: Enhanced streaming with proper configuration
     const result = streamText({
       model: aiProvider(DEFAULT_AI_MODEL),
       messages: convertToModelMessages(messages),
-      system: SYSTEM_PROMPTS.coach(userName),
+      system: SYSTEM_PROMPTS.coach(userName, userId),
       temperature: AI_SETTINGS.chat.temperature,
       tools,
 
       // AI SDK 5: Set appropriate limits
       maxRetries: 2,
+      stopWhen: stepCountIs(5), // Allow up to 5 sequential LLM calls (tool roundtrips)
 
       // AI SDK 5: Add metadata for monitoring
       experimental_telemetry: {
