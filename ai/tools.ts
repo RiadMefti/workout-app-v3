@@ -87,7 +87,8 @@ export const getActiveRoutine = createTool({
         return {
           type: "active-routine-result",
           success: false,
-          message: "You don't have an active routine. Would you like to create one?",
+          message:
+            "You don't have an active routine. Would you like to create one?",
         };
       }
 
@@ -148,7 +149,9 @@ export const getNextWorkout = createTool({
         const nextDayOrder = currentDayOrder + 1;
 
         // Check if there's a next day
-        nextDay = activeRoutine.days.find((day) => day.dayOrder === nextDayOrder);
+        nextDay = activeRoutine.days.find(
+          (day) => day.dayOrder === nextDayOrder
+        );
 
         // If no next day, cycle back to day 1
         if (!nextDay) {
@@ -223,7 +226,9 @@ export const searchExercises = createTool({
     exerciseName: z
       .string()
       .optional()
-      .describe("Name of a specific exercise to search for (e.g., 'bench press', 'squat')"),
+      .describe(
+        "Name of a specific exercise to search for (e.g., 'bench press', 'squat')"
+      ),
     targetMuscles: z
       .array(
         z.enum([
@@ -265,7 +270,7 @@ export const searchExercises = createTool({
   }),
   execute: async function ({ exerciseName, targetMuscles, equipments, limit }) {
     // If searching by name, get all exercises to search from
-    const searchLimit = exerciseName ? 1500 : (limit || 5);
+    const searchLimit = exerciseName ? 1500 : limit || 5;
 
     const result = ExerciseService.search({
       targetMuscles: targetMuscles as TargetMuscle[] | undefined,
@@ -277,12 +282,12 @@ export const searchExercises = createTool({
     let exercises = result.exercises;
     if (exerciseName) {
       const searchTerms = exerciseName.toLowerCase().trim();
-      
+
       // Score each exercise based on relevance
       const scoredExercises = exercises.map((ex) => {
         const name = ex.name.toLowerCase();
         let score = 0;
-        
+
         // Exact match gets highest score
         if (name === searchTerms) {
           score = 10000;
@@ -299,52 +304,52 @@ export const searchExercises = createTool({
         else {
           const searchWords = searchTerms.split(/\s+/);
           const nameWords = name.split(/\s+/);
-          
+
           let matchedWords = 0;
           for (const searchWord of searchWords) {
             // Check exact word match
-            if (nameWords.some(w => w === searchWord)) {
+            if (nameWords.some((w) => w === searchWord)) {
               matchedWords += 2;
               score += 500;
             }
             // Check if word contains search word
-            else if (nameWords.some(w => w.includes(searchWord))) {
+            else if (nameWords.some((w) => w.includes(searchWord))) {
               matchedWords += 1;
               score += 250;
             }
           }
-          
+
           // Bonus if all words matched
           if (matchedWords >= searchWords.length) {
             score += 1000;
           }
         }
-        
+
         // Only apply popularity scoring if there's a base match
         if (score > 0) {
           // CRITICAL: Heavily penalize exercises with extra modifier words
           const searchWordCount = searchTerms.split(/\s+/).length;
           const nameWordCount = name.split(/\s+/).length;
           const extraWords = nameWordCount - searchWordCount;
-          
+
           // Penalize each extra word heavily to prefer simpler/exact matches
           if (extraWords > 0) {
             score -= extraWords * 500; // -500 per extra word
           }
-          
+
           // Equipment popularity bonus (smaller now)
           const equipmentPopularity: Record<string, number> = {
-            'barbell': 50,
-            'dumbbell': 45,
-            'body weight': 40,
-            'cable': 30,
-            'machine': 25,
-            'kettlebell': 20,
-            'band': 15,
-            'ez barbell': 15,
-            'smith machine': 5,
+            barbell: 50,
+            dumbbell: 45,
+            "body weight": 40,
+            cable: 30,
+            machine: 25,
+            kettlebell: 20,
+            band: 15,
+            "ez barbell": 15,
+            "smith machine": 5,
           };
-          
+
           let equipmentBonus = 0;
           for (const equipment of ex.equipments) {
             const equipLower = equipment.toLowerCase();
@@ -355,55 +360,58 @@ export const searchExercises = createTool({
             }
           }
           score += equipmentBonus;
-          
+
           // Heavy penalties for modifier words
           const modifierPenalties: Record<string, number> = {
-            'incline': -1000,
-            'decline': -1000,
-            'smith': -800,
-            'assisted': -800,
-            'reverse': -700,
-            'close grip': -700,
-            'wide grip': -700,
-            'single': -700,
-            'alternating': -700,
-            'jerk': -1000,
-            'snatch': -1000,
-            'clean': -1000,
-            'overhead': -600,
-            'front': -600,
-            'bulgarian': -800,
-            'pistol': -800,
-            'goblet': -700,
-            'sumo': -700,
-            'hack': -800,
-            'sissy': -900,
-            'landmine': -800,
-            'trap bar': -700,
-            'jefferson': -900,
-            'zercher': -900,
+            incline: -1000,
+            decline: -1000,
+            smith: -800,
+            assisted: -800,
+            reverse: -700,
+            "close grip": -700,
+            "wide grip": -700,
+            single: -700,
+            alternating: -700,
+            jerk: -1000,
+            snatch: -1000,
+            clean: -1000,
+            overhead: -600,
+            front: -600,
+            bulgarian: -800,
+            pistol: -800,
+            goblet: -700,
+            sumo: -700,
+            hack: -800,
+            sissy: -900,
+            landmine: -800,
+            "trap bar": -700,
+            jefferson: -900,
+            zercher: -900,
           };
-          
+
           for (const [keyword, penalty] of Object.entries(modifierPenalties)) {
             if (name.includes(keyword) && !searchTerms.includes(keyword)) {
               score += penalty;
             }
           }
-          
+
           // Boost if name has "barbell" or "dumbbell" and matches exactly with equipment prefix
-          if ((name === `barbell ${searchTerms}` || name === `dumbbell ${searchTerms}`)) {
+          if (
+            name === `barbell ${searchTerms}` ||
+            name === `dumbbell ${searchTerms}`
+          ) {
             score += 2000;
           }
         }
-        
+
         return { exercise: ex, score };
       });
-      
+
       // Filter out exercises with score 0 and sort by score
       exercises = scoredExercises
-        .filter(item => item.score > 0)
+        .filter((item) => item.score > 0)
         .sort((a, b) => b.score - a.score)
-        .map(item => item.exercise)
+        .map((item) => item.exercise)
         .slice(0, limit || 5);
     }
 
@@ -460,7 +468,9 @@ export const getWorkoutHistorySummary = createTool({
     try {
       // Default to last 30 days if no dates provided
       const end = endDate ? new Date(endDate) : new Date();
-      const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const start = startDate
+        ? new Date(startDate)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       const workouts = await getWorkoutHistory(userId, start, end);
 
@@ -520,7 +530,7 @@ export const getSpecificWorkout = createTool({
       } else if (date) {
         // Get workouts for a specific date
         // Parse date in local timezone to avoid UTC offset issues
-        const [year, month, day] = date.split('-').map(Number);
+        const [year, month, day] = date.split("-").map(Number);
         const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
         const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
 
@@ -530,7 +540,13 @@ export const getSpecificWorkout = createTool({
           return {
             type: "specific-workout-result",
             success: false,
-            message: `You didn't log any workouts on ${new Date(date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`,
+            message: `You didn't log any workouts on ${new Date(
+              date
+            ).toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}.`,
           };
         }
 
@@ -554,7 +570,8 @@ export const getSpecificWorkout = createTool({
         return {
           type: "specific-workout-result",
           success: false,
-          message: "Please provide either a workout ID or a date to search for.",
+          message:
+            "Please provide either a workout ID or a date to search for.",
         };
       }
     } catch (error) {

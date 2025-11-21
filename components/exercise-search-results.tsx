@@ -60,7 +60,7 @@ export function ExerciseSearchResults({
                 </div>
               </div>
             </div>
-            
+
             {/* Larger GIF display */}
             <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
               <img
