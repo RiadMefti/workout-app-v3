@@ -31,7 +31,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const messages: UIMessage[] = body.messages;
+    const allMessages: UIMessage[] = body.messages;
+
+    // Optimize context: Keep only last 10 messages to reduce token usage
+    // Always keep the first message (welcome) if it exists
+    const messages: UIMessage[] =
+      allMessages.length > 11
+        ? [allMessages[0], ...allMessages.slice(-10)]
+        : allMessages;
 
     // Authentication with proper error handling
     const auth = await withAuth({ ensureSignedIn: true });
