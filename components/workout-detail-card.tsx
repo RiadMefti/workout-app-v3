@@ -36,9 +36,7 @@ export function WorkoutDetailCard({ workout }: WorkoutDetailCardProps) {
     <Card className="w-full overflow-hidden border-2">
       {/* Header */}
       <div className="px-4 py-3 border-b bg-muted/30">
-        <h3 className="font-bold text-base">
-          {workout.workoutName}
-        </h3>
+        <h3 className="font-bold text-base">{workout.workoutName}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
           {new Date(workout.completedAt).toLocaleDateString("en-US", {
             weekday: "long",
@@ -58,9 +56,7 @@ export function WorkoutDetailCard({ workout }: WorkoutDetailCardProps) {
         <div>
           <span className="text-muted-foreground">Volume:</span>{" "}
           <span className="font-semibold">
-            {totalVolume > 0
-              ? `${totalVolume.toLocaleString()} lbs`
-              : "0 lbs"}
+            {totalVolume > 0 ? `${totalVolume.toLocaleString()} lbs` : "0 lbs"}
           </span>
         </div>
       </div>
@@ -79,7 +75,9 @@ export function WorkoutDetailCard({ workout }: WorkoutDetailCardProps) {
                 {/* Exercise Header */}
                 <div className="bg-muted/40 px-3 py-2 flex items-center justify-between">
                   <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <span className="text-muted-foreground text-xs">{idx + 1}.</span>
+                    <span className="text-muted-foreground text-xs">
+                      {idx + 1}.
+                    </span>
                     {exercise.exerciseName}
                   </h4>
                   {maxWeight > 0 && (

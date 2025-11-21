@@ -264,8 +264,8 @@ export const searchExercises = createTool({
       .describe("Maximum number of exercises to return"),
   }),
   execute: async function ({ exerciseName, targetMuscles, equipments, limit }) {
-    // If searching by name, get a larger set to filter from
-    const searchLimit = exerciseName ? 100 : (limit || 5);
+    // If searching by name, get all exercises to search from
+    const searchLimit = exerciseName ? 1500 : (limit || 5);
 
     const result = ExerciseService.search({
       targetMuscles: targetMuscles as TargetMuscle[] | undefined,
@@ -273,14 +273,138 @@ export const searchExercises = createTool({
       limit: searchLimit,
     });
 
-    // Filter by name if provided
+    // Filter by name if provided with improved matching
     let exercises = result.exercises;
     if (exerciseName) {
-      exercises = exercises.filter((ex) =>
-        ex.name.toLowerCase().includes(exerciseName.toLowerCase())
-      );
-      // Limit results when searching by name
-      exercises = exercises.slice(0, limit || 5);
+      const searchTerms = exerciseName.toLowerCase().trim();
+      
+      // Score each exercise based on relevance
+      const scoredExercises = exercises.map((ex) => {
+        const name = ex.name.toLowerCase();
+        let score = 0;
+        
+        // Exact match gets highest score
+        if (name === searchTerms) {
+          score = 10000;
+        }
+        // Starts with search term
+        else if (name.startsWith(searchTerms)) {
+          score = 5000;
+        }
+        // Contains exact search term
+        else if (name.includes(searchTerms)) {
+          score = 2500;
+        }
+        // Check if all words in search term appear in exercise name
+        else {
+          const searchWords = searchTerms.split(/\s+/);
+          const nameWords = name.split(/\s+/);
+          
+          let matchedWords = 0;
+          for (const searchWord of searchWords) {
+            // Check exact word match
+            if (nameWords.some(w => w === searchWord)) {
+              matchedWords += 2;
+              score += 500;
+            }
+            // Check if word contains search word
+            else if (nameWords.some(w => w.includes(searchWord))) {
+              matchedWords += 1;
+              score += 250;
+            }
+          }
+          
+          // Bonus if all words matched
+          if (matchedWords >= searchWords.length) {
+            score += 1000;
+          }
+        }
+        
+        // Only apply popularity scoring if there's a base match
+        if (score > 0) {
+          // CRITICAL: Heavily penalize exercises with extra modifier words
+          const searchWordCount = searchTerms.split(/\s+/).length;
+          const nameWordCount = name.split(/\s+/).length;
+          const extraWords = nameWordCount - searchWordCount;
+          
+          // Penalize each extra word heavily to prefer simpler/exact matches
+          if (extraWords > 0) {
+            score -= extraWords * 500; // -500 per extra word
+          }
+          
+          // Equipment popularity bonus (smaller now)
+          const equipmentPopularity: Record<string, number> = {
+            'barbell': 50,
+            'dumbbell': 45,
+            'body weight': 40,
+            'cable': 30,
+            'machine': 25,
+            'kettlebell': 20,
+            'band': 15,
+            'ez barbell': 15,
+            'smith machine': 5,
+          };
+          
+          let equipmentBonus = 0;
+          for (const equipment of ex.equipments) {
+            const equipLower = equipment.toLowerCase();
+            for (const [key, value] of Object.entries(equipmentPopularity)) {
+              if (equipLower.includes(key)) {
+                equipmentBonus = Math.max(equipmentBonus, value);
+              }
+            }
+          }
+          score += equipmentBonus;
+          
+          // Heavy penalties for modifier words
+          const modifierPenalties: Record<string, number> = {
+            'incline': -1000,
+            'decline': -1000,
+            'smith': -800,
+            'assisted': -800,
+            'reverse': -700,
+            'close grip': -700,
+            'wide grip': -700,
+            'single': -700,
+            'alternating': -700,
+            'jerk': -1000,
+            'snatch': -1000,
+            'clean': -1000,
+            'overhead': -600,
+            'front': -600,
+            'bulgarian': -800,
+            'pistol': -800,
+            'goblet': -700,
+            'sumo': -700,
+            'hack': -800,
+            'sissy': -900,
+            'landmine': -800,
+            'trap bar': -700,
+            'jefferson': -900,
+            'zercher': -900,
+          };
+          
+          for (const [keyword, penalty] of Object.entries(modifierPenalties)) {
+            if (name.includes(keyword) && !searchTerms.includes(keyword)) {
+              score += penalty;
+            }
+          }
+          
+          // Boost if name has "barbell" or "dumbbell" and matches exactly with equipment prefix
+          if ((name === `barbell ${searchTerms}` || name === `dumbbell ${searchTerms}`)) {
+            score += 2000;
+          }
+        }
+        
+        return { exercise: ex, score };
+      });
+      
+      // Filter out exercises with score 0 and sort by score
+      exercises = scoredExercises
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.exercise)
+        .slice(0, limit || 5);
     }
 
     return {

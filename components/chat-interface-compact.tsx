@@ -79,7 +79,7 @@ export function ChatInterface() {
 
   const handleQuickAction = (prompt: string) => {
     setCalendarWorkout(null); // Clear calendar workout when using quick actions
-    
+
     if (prompt.toLowerCase().includes("record a workout")) {
       setShowWorkoutRecorder(true);
       setShowRoutineManager(false);
@@ -296,10 +296,9 @@ export function ChatInterface() {
                 })}
 
                 {/* Show QuickActions for welcome message */}
-                {message.id === "welcome" &&
-                  message.role === "assistant" && (
-                    <QuickActions onActionClick={handleQuickAction} />
-                  )}
+                {message.id === "welcome" && message.role === "assistant" && (
+                  <QuickActions onActionClick={handleQuickAction} />
+                )}
 
                 {/* Show compact components */}
                 {message.id === "welcome" && message.role === "assistant" && (

@@ -19,7 +19,7 @@ interface WorkoutDetails {
       setNumber: number;
       reps: number;
       weight: number;
-    }>;  
+    }>;
   }>;
 }
 
@@ -36,7 +36,9 @@ interface CompletedWorkout {
 
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function EnhancedWorkoutHistory({ onWorkoutClick }: EnhancedWorkoutHistoryProps = {}) {
+export function EnhancedWorkoutHistory({
+  onWorkoutClick,
+}: EnhancedWorkoutHistoryProps = {}) {
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [workouts, setWorkouts] = useState<CompletedWorkout[]>([]);
@@ -104,14 +106,16 @@ export function EnhancedWorkoutHistory({ onWorkoutClick }: EnhancedWorkoutHistor
 
     setLoadingDetails(true);
     try {
-      const response = await fetch(`/api/workouts/${workoutId}?userId=${user.id}`);
+      const response = await fetch(
+        `/api/workouts/${workoutId}?userId=${user.id}`
+      );
       if (response.ok) {
         const data = await response.json();
         const workoutDetails = {
           ...data.workout,
           completedAt: new Date(data.workout.completedAt),
         };
-        
+
         // Call the callback if provided
         if (onWorkoutClick) {
           onWorkoutClick(workoutDetails);
@@ -239,7 +243,9 @@ export function EnhancedWorkoutHistory({ onWorkoutClick }: EnhancedWorkoutHistor
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-xl font-semibold text-foreground">{monthName}</h3>
+            <h3 className="text-xl font-semibold text-foreground">
+              {monthName}
+            </h3>
             <p className="text-sm text-muted-foreground mt-1">
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -247,7 +253,10 @@ export function EnhancedWorkoutHistory({ onWorkoutClick }: EnhancedWorkoutHistor
                   Loading...
                 </span>
               ) : (
-                <>{workoutsThisMonth} {workoutsThisMonth === 1 ? "workout" : "workouts"} this month</>
+                <>
+                  {workoutsThisMonth}{" "}
+                  {workoutsThisMonth === 1 ? "workout" : "workouts"} this month
+                </>
               )}
             </p>
           </div>
@@ -303,7 +312,9 @@ export function EnhancedWorkoutHistory({ onWorkoutClick }: EnhancedWorkoutHistor
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded border border-primary/30 bg-primary/5" />
-            <span className="text-xs text-muted-foreground">Workout completed</span>
+            <span className="text-xs text-muted-foreground">
+              Workout completed
+            </span>
           </div>
         </div>
       </Card>
