@@ -8,13 +8,14 @@ import { Send } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useChat } from "@ai-sdk/react";
 import { QuickActions } from "./quick-actions";
-import { WorkoutHistoryCalendar } from "./workout-history-calendar";
+import { EnhancedWorkoutHistory } from "./enhanced-workout-history";
 import { CompactWorkoutRecorder } from "./compact-workout-recorder";
 import { CompactRoutineManager } from "./compact-routine-manager";
 import { CompactRoutineCreator } from "./compact-routine-creator";
 import { ActiveRoutineDisplay } from "./active-routine-display";
 import { NextWorkoutDisplay } from "./next-workout-display";
 import { ExerciseSearchResults } from "./exercise-search-results";
+import { WorkoutDetailModal } from "./workout-detail-modal";
 import type { UIMessage } from "ai";
 import type { AppTools } from "@/ai/tools";
 
@@ -50,6 +51,7 @@ export function ChatInterface() {
   const [showRoutineManager, setShowRoutineManager] = useState(false);
   const [showRoutineCreator, setShowRoutineCreator] = useState(false);
   const [showWorkoutRecorder, setShowWorkoutRecorder] = useState(false);
+  const [aiModalWorkout, setAiModalWorkout] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -208,7 +210,7 @@ export function ChatInterface() {
                       />
                     )}
 
-                    {showWorkoutHistory && <WorkoutHistoryCalendar />}
+                    {showWorkoutHistory && <EnhancedWorkoutHistory />}
                   </>
                 )}
 
@@ -292,6 +294,29 @@ export function ChatInterface() {
                           key={`${message.id}-${i}`}
                           exercises={part.output.exercises}
                           total={part.output.total}
+                        />
+                      );
+                    }
+                  }
+
+                  // WORKOUT HISTORY TOOLS
+                  if (part.type === "tool-showWorkoutHistory") {
+                    if (part.state === "output-available") {
+                      return (
+                        <div key={`${message.id}-${i}`} className="w-full">
+                          <EnhancedWorkoutHistory />
+                        </div>
+                      );
+                    }
+                  }
+
+                  if (part.type === "tool-getSpecificWorkout") {
+                    if (part.state === "output-available" && part.output.success) {
+                      return (
+                        <WorkoutDetailModal
+                          key={`${message.id}-${i}`}
+                          workout={part.output.workout}
+                          onClose={() => {}}
                         />
                       );
                     }

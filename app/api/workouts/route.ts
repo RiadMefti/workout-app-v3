@@ -1,6 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCompletedWorkout } from "@/db/services/workouts";
+import { createCompletedWorkout, getWorkoutHistory } from "@/db/services/workouts";
 import { requireAuth, verifyOwnership } from "@/lib/auth";
+
+export async function GET(request: NextRequest) {
+  try {
+    // Authenticate user
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "userId is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify ownership
+    const ownershipError = verifyOwnership(auth.user.id, userId);
+    if (ownershipError) return ownershipError;
+
+    // Parse dates or use defaults (last 30 days)
+    const end = endDate ? new Date(endDate) : new Date();
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const workouts = await getWorkoutHistory(userId, start, end);
+
+    return NextResponse.json({ success: true, workouts }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching workout history:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch workout history" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {

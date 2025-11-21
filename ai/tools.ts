@@ -6,6 +6,8 @@ import {
   getActiveRoutine as getActiveRoutineFromDb,
   getUserRoutinesWithDetails,
   getLastCompletedWorkoutForRoutine,
+  getWorkoutHistory,
+  getWorkoutDetails,
 } from "@/db/services";
 
 /**
@@ -290,6 +292,159 @@ export const searchExercises = createTool({
 });
 
 // ============================================================================
+// WORKOUT HISTORY TOOLS - View past workout performance
+// ============================================================================
+
+export const showWorkoutHistory = createTool({
+  description:
+    "Display the workout history calendar UI showing all completed workouts. Use this when the user asks to see their workout history, past workouts, or training log.",
+  inputSchema: z.object({
+    message: z
+      .string()
+      .optional()
+      .describe("Optional message to show with the history"),
+  }),
+  execute: async function ({ message }) {
+    return {
+      type: "show-workout-history",
+      message: message || "Here's your workout history:",
+    };
+  },
+});
+
+export const getWorkoutHistorySummary = createTool({
+  description:
+    "Get a summary of the user's workout history for a specific date range. Use this when user asks about their workout frequency, patterns, or statistics (e.g., 'how many workouts this month', 'what did I do in November').",
+  inputSchema: z.object({
+    userId: z.string().describe("The user's ID"),
+    startDate: z
+      .string()
+      .optional()
+      .describe("Start date in ISO format (e.g., '2024-11-01')"),
+    endDate: z
+      .string()
+      .optional()
+      .describe("End date in ISO format (e.g., '2024-11-30')"),
+    limit: z
+      .number()
+      .min(1)
+      .max(50)
+      .default(10)
+      .describe("Maximum number of workouts to return"),
+  }),
+  execute: async function ({ userId, startDate, endDate, limit }) {
+    try {
+      // Default to last 30 days if no dates provided
+      const end = endDate ? new Date(endDate) : new Date();
+      const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const workouts = await getWorkoutHistory(userId, start, end);
+
+      // Apply limit if specified
+      const limitedWorkouts = limit ? workouts.slice(0, limit) : workouts;
+
+      return {
+        type: "workout-history-summary",
+        success: true,
+        workouts: limitedWorkouts,
+        totalWorkouts: limitedWorkouts.length,
+      };
+    } catch (error) {
+      console.error("[getWorkoutHistorySummary tool] Error:", error);
+      return {
+        type: "workout-history-summary",
+        success: false,
+        message: "I couldn't fetch your workout history. Please try again.",
+        workouts: [],
+        totalWorkouts: 0,
+      };
+    }
+  },
+});
+
+export const getSpecificWorkout = createTool({
+  description:
+    "Get detailed information about a specific workout by ID or date. Use this when user asks about a specific workout (e.g., 'what did I do on November 25', 'show me my last leg day').",
+  inputSchema: z.object({
+    userId: z.string().describe("The user's ID"),
+    workoutId: z
+      .string()
+      .optional()
+      .describe("The specific workout ID if known"),
+    date: z
+      .string()
+      .optional()
+      .describe("Date to search for workouts (ISO format like '2024-11-25')"),
+  }),
+  execute: async function ({ userId, workoutId, date }) {
+    try {
+      if (workoutId) {
+        // Get specific workout by ID
+        const workout = await getWorkoutDetails(userId, workoutId);
+        if (!workout) {
+          return {
+            type: "specific-workout-result",
+            success: false,
+            message: "I couldn't find that workout.",
+          };
+        }
+        return {
+          type: "specific-workout-result",
+          success: true,
+          workout,
+        };
+      } else if (date) {
+        // Get workouts for a specific date
+        // Parse date in local timezone to avoid UTC offset issues
+        const [year, month, day] = date.split('-').map(Number);
+        const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+        const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+        const workouts = await getWorkoutHistory(userId, startOfDay, endOfDay);
+
+        if (workouts.length === 0) {
+          return {
+            type: "specific-workout-result",
+            success: false,
+            message: `You didn't log any workouts on ${new Date(date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`,
+          };
+        }
+
+        // Fetch full details for the first workout
+        const workoutDetails = await getWorkoutDetails(userId, workouts[0].id);
+
+        if (!workoutDetails) {
+          return {
+            type: "specific-workout-result",
+            success: false,
+            message: "I couldn't fetch the workout details.",
+          };
+        }
+
+        return {
+          type: "specific-workout-result",
+          success: true,
+          workout: workoutDetails,
+        };
+      } else {
+        return {
+          type: "specific-workout-result",
+          success: false,
+          message: "Please provide either a workout ID or a date to search for.",
+        };
+      }
+    } catch (error) {
+      console.error("[getSpecificWorkout tool] Error:", error);
+      return {
+        type: "specific-workout-result",
+        success: false,
+        message: "I couldn't fetch that workout. Please try again.",
+      };
+    }
+  },
+});
+
+// ============================================================================
 // EXPORT ALL TOOLS
 // ============================================================================
 
@@ -298,11 +453,16 @@ export const tools = {
   showWorkoutRecorder,
   showRoutineManager,
   showRoutineCreator,
+  showWorkoutHistory,
 
   // Data fetching
   getActiveRoutine,
   getNextWorkout,
   getUserRoutines,
+
+  // Workout history
+  getWorkoutHistorySummary,
+  getSpecificWorkout,
 
   // Exercise tools
   searchExercises,
@@ -379,5 +539,43 @@ export type AppTools = {
       exercises: any[];
       total: number;
     };
+  };
+  showWorkoutHistory: {
+    input: { message?: string };
+    output: { type: "show-workout-history"; message: string };
+  };
+  getWorkoutHistorySummary: {
+    input: {
+      userId: string;
+      startDate?: string;
+      endDate?: string;
+      limit?: number;
+    };
+    output: {
+      type: "workout-history-summary";
+      success: boolean;
+      workouts: any[];
+      totalWorkouts: number;
+      message?: string;
+    };
+  };
+  getSpecificWorkout: {
+    input: {
+      userId: string;
+      workoutId?: string;
+      date?: string;
+    };
+    output:
+      | {
+          type: "specific-workout-result";
+          success: true;
+          workout: any;
+          additionalWorkouts?: any[];
+        }
+      | {
+          type: "specific-workout-result";
+          success: false;
+          message: string;
+        };
   };
 };
